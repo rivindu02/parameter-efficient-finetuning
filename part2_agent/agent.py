@@ -81,3 +81,18 @@ def clean(text):
     return text.strip()
 
 
+# ----------------------------------------------------------------------------
+# Generation
+# ----------------------------------------------------------------------------
+def generate_batch(model, tok, conversations, max_new_tokens=200):
+    import torch
+    prompts = [tok.apply_chat_template(c, tools=TOOL_SCHEMAS, add_generation_prompt=True, tokenize=False)
+               for c in conversations]
+    enc = tok(prompts, return_tensors="pt", padding=True, add_special_tokens=False).to(model.device)
+    with torch.no_grad():
+        out = model.generate(**enc, max_new_tokens=max_new_tokens, do_sample=False,
+                             pad_token_id=tok.pad_token_id, temperature=None, top_p=None, top_k=None)
+    new = out[:, enc["input_ids"].shape[1]:]
+    return [clean(tok.decode(row, skip_special_tokens=False)) for row in new]
+
+
