@@ -367,6 +367,23 @@ def anls(pred, answers, tau=0.5):
     return best
 
 
+def _norm(s, strip_punct=False):
+    s = " ".join(s.strip().lower().split())
+    return s.rstrip(" .,;:") if strip_punct else s
+
+
+def score_predictions(preds, data):
+    """Official-style ANLS / exact match, plus variants that ignore trailing punctuation
+    (the zero-shot model often ends answers with '.', which finetuning removes)."""
+    out = {}
+    for suffix, strip in [("", False), ("_norm", True)]:
+        sc = [anls(_norm(p, strip), [_norm(a, strip) for a in e["answers"]]) for p, e in zip(preds, data)]
+        em = [float(any(_norm(p, strip) == _norm(a, strip) for a in e["answers"])) for p, e in zip(preds, data)]
+        out["anls" + suffix] = 100 * sum(sc) / len(sc)
+        out["exact_match" + suffix] = 100 * sum(em) / len(em)
+    return out
+
+
 @torch.no_grad()
 def evaluate_anls(cfg, model, proc, name):
     device = next(model.parameters()).device
