@@ -76,3 +76,7 @@ def attempted_calls(trace):
     return [c for st in trace["steps"] if st["valid"] or hallucinated_tool(st) for c in st["calls"]]
 
 
+def _stem(w):
+    return w if len(w) <= 4 else w[:max(4, len(w) - 3)]
+
+
