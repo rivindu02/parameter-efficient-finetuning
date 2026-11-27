@@ -18,3 +18,10 @@ METHODS = [("full", "Full FT"), ("lora", "LoRA"), ("dora", "DoRA")]
 COL = {"full": "#444444", "lora": "#2b7bba", "dora": "#d1495b"}
 
 
+def pearson(x, y):
+    mx, my = sum(x) / len(x), sum(y) / len(y)
+    sx = math.sqrt(sum((a - mx) ** 2 for a in x))
+    sy = math.sqrt(sum((b - my) ** 2 for b in y))
+    return sum((a - mx) * (b - my) for a, b in zip(x, y)) / (sx * sy) if sx and sy else float("nan")
+
+
