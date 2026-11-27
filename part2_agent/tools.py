@@ -138,3 +138,13 @@ def get_weather(city):
     return {"city": key.title(), "temperature_c": temp, "condition": cond}
 
 
+def get_stock_price(ticker):
+    key = str(ticker).strip().upper()
+    if key not in STOCKS:
+        return {"error": f"unknown ticker '{ticker}'"}
+    return {"ticker": key, "price_usd": STOCKS[key]}
+
+
+_DATE_FORMATS = ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"]
+
+
