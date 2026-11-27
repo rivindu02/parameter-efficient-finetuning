@@ -24,3 +24,7 @@ def writefile(folder, name):
         return code(f"%%writefile {name}\n" + f.read())
 
 
+def _src(c):
+    return "".join(c["source"]) if isinstance(c["source"], list) else c["source"]
+
+
