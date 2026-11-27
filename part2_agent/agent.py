@@ -140,3 +140,12 @@ def run_agent_batch(model, tok, queries, system_prompt=SYSTEM_PROMPT, max_steps=
     return [{k: v for k, v in s.items() if k != "done"} for s in states]
 
 
+def chat(model, tok, query, **kw):
+    """Convenience: run one query and print the trace."""
+    tr = run_agent_batch(model, tok, [query], **kw)[0]
+    for i, st in enumerate(tr["steps"]):
+        print(f"[step {i}] {st['raw']}")
+        for r in st["results"]:
+            print(f"   -> tool result: {r}")
+    print(f"FINAL ({tr['stop']}): {tr['final']}")
+    return tr
