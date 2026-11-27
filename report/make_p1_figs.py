@@ -93,3 +93,21 @@ def tables():
         print(f"  {run:<12}" + "  ".join(parts))
 
 
+def bootstrap():
+    sys.path.insert(0, os.path.join(HERE, "..", "part1_vlm_dora"))
+    from dora_vlm import anls
+    runs = [r for r in ["zeroshot", "lora", "dora", "full", "dora_vision", "dora_text"]
+            if os.path.exists(os.path.join(RES, f"eval_{r}.json"))]
+    S = {r: [anls(p["pred"], p["answers"]) for p in json.load(open(os.path.join(RES, f"eval_{r}.json")))["predictions"]]
+         for r in runs}
+    print("\nANLS paired bootstrap (5000 resamples, 95% CI)")
+    rng = random.Random(0)
+    pairs = [(a, "zeroshot") for a in runs if a != "zeroshot"] + [("dora", "lora"), ("dora", "full")]
+    pairs += [("dora", r) for r in ["dora_vision", "dora_text"] if r in runs]
+    for a, b in pairs:
+        d = [x - y for x, y in zip(S[a], S[b])]
+        n = len(d)
+        bs = sorted(sum(d[rng.randrange(n)] for _ in range(n)) / n for _ in range(5000))
+        print(f"  {a:>11} - {b:<11} {100 * sum(d) / n:+6.2f}  [{100 * bs[125]:+.2f}, {100 * bs[4875]:+.2f}]")
+
+
