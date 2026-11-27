@@ -23,3 +23,19 @@ _TOOL_CALL_RE = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.S)
 _STRIP_TOKENS = ["<|im_end|>", "<|endoftext|>", "<|im_start|>"]
 
 
+def load_model(model_id=MODEL_ID, adapter_path=None, device=None, dtype=None):
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    dtype = dtype or (torch.float16 if device == "cuda" else torch.float32)
+    tok = AutoTokenizer.from_pretrained(model_id)
+    tok.padding_side = "left"
+    model = AutoModelForCausalLM.from_pretrained(model_id, dtype=dtype).to(device)
+    if adapter_path:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, adapter_path)
+        model = model.merge_and_unload()
+    model.eval()
+    return model, tok
+
+
