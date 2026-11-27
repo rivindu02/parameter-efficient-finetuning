@@ -80,3 +80,12 @@ def _stem(w):
     return w if len(w) <= 4 else w[:max(4, len(w) - 3)]
 
 
+def str_ok(value, text):
+    """Keyword check robust to inflection: 'drizzle' matches 'drizzling', 'snow' matches 'snowing'."""
+    value, text = value.lower(), text.lower()
+    if value in text:
+        return True
+    words = [w for w in re.findall(r"[a-z0-9]+", value) if w not in ("and", "the", "of")]
+    return bool(words) and all(re.search(r"\b" + re.escape(_stem(w)), text) for w in words)
+
+
