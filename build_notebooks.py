@@ -93,7 +93,8 @@ except Exception:
 if not os.path.exists('/content/repo/.git'):
     subprocess.run(['git', 'clone', '-q', '-b', BRANCH, url, '/content/repo'], check=True)
 else:
-    subprocess.run(['git', '-C', '/content/repo', 'pull', '-q'], check=True)
+    subprocess.run(['git', '-C', '/content/repo', 'fetch', '-q', 'origin', BRANCH], check=True)
+    subprocess.run(['git', '-C', '/content/repo', 'reset', '-q', '--hard', f'origin/{BRANCH}'], check=True)
 print(subprocess.run(['git', '-C', '/content/repo', 'log', '-1', '--oneline'], capture_output=True, text=True).stdout)
 %cd /content/repo/{part}
 sys.path.insert(0, '/content/repo/{part}')
