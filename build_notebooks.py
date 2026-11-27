@@ -110,3 +110,19 @@ for m in list(sys.modules):
 """)
 
 
+def runner(cells, part, modules):
+    """Turn a standalone notebook into a git-based runner: swap setup, drop %%writefile cells."""
+    out = []
+    for c in cells:
+        src = c["source"]
+        if c["cell_type"] == "code" and src.startswith("%%writefile"):
+            continue
+        if c["cell_type"] == "code" and "drive.mount" in src and "USE_DRIVE" in src:
+            extra = "!pip -q install matplotlib" if "matplotlib" in src else ""
+            out.append(code(GIT_SETUP.replace("{part}", part) + f"\nMODULES = {modules!r}\n" + extra))
+            out.append(PULL)
+            continue
+        out.append(c)
+    return out
+
+
