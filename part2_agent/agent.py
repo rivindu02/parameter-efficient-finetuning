@@ -39,3 +39,39 @@ def load_model(model_id=MODEL_ID, adapter_path=None, device=None, dtype=None):
     return model, tok
 
 
+# ----------------------------------------------------------------------------
+# Parsing
+# ----------------------------------------------------------------------------
+def parse_tool_calls(text):
+    """Return (attempted, valid, calls).
+
+    attempted: the output looks like an attempt to call a tool (tagged or raw JSON).
+    valid:     every call parses as JSON in the expected <tool_call> format, names a
+               known tool, and has an object of arguments.
+    calls:     list of {"name", "arguments"} (only when valid).
+    """
+    blocks = _TOOL_CALL_RE.findall(text)
+    stripped = text.strip()
+    raw_json_attempt = (stripped.startswith("{") and '"name"' in stripped) or "<tool_call>" in text
+    if not blocks:
+        return (raw_json_attempt, False, []) if raw_json_attempt else (False, False, [])
+    calls = []
+    for b in blocks:
+        try:
+            obj = json.loads(b)
+        except json.JSONDecodeError:
+            return True, False, []
+        if not isinstance(obj, dict):
+            return True, False, []
+        name, args = obj.get("name"), obj.get("arguments", obj.get("parameters"))
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except json.JSONDecodeError:
+                return True, False, []
+        if name not in TOOLS or not isinstance(args, dict):
+            return True, False, [{"name": name, "arguments": args}]
+        calls.append({"name": name, "arguments": args})
+    return True, True, calls
+
+
