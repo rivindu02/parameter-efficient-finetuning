@@ -173,3 +173,40 @@ TOOLS = {
     "days_between": days_between,
 }
 
+TOOL_SCHEMAS = [
+    {"type": "function", "function": {
+        "name": "calculator",
+        "description": "Evaluate an arithmetic expression with + - * / ** % and parentheses.",
+        "parameters": {"type": "object", "properties": {
+            "expression": {"type": "string", "description": "Arithmetic expression, e.g. '(12 + 7) * 3'"}},
+            "required": ["expression"]}}},
+    {"type": "function", "function": {
+        "name": "convert_units",
+        "description": "Convert a value between units. Supported: km/mi, kg/lb, C/F, m/ft, L/gal, cm/in.",
+        "parameters": {"type": "object", "properties": {
+            "value": {"type": "number", "description": "The value to convert"},
+            "from_unit": {"type": "string", "description": "Source unit, e.g. 'km'"},
+            "to_unit": {"type": "string", "description": "Target unit, e.g. 'mi'"}},
+            "required": ["value", "from_unit", "to_unit"]}}},
+    {"type": "function", "function": {
+        "name": "get_weather",
+        "description": "Get the current weather (temperature in Celsius and condition) for a city.",
+        "parameters": {"type": "object", "properties": {
+            "city": {"type": "string", "description": "City name, e.g. 'Paris'"}},
+            "required": ["city"]}}},
+    {"type": "function", "function": {
+        "name": "get_stock_price",
+        "description": "Get the latest price in USD of a stock by its ticker symbol.",
+        "parameters": {"type": "object", "properties": {
+            "ticker": {"type": "string", "description": "Ticker symbol, e.g. 'ZORB'"}},
+            "required": ["ticker"]}}},
+    {"type": "function", "function": {
+        "name": "days_between",
+        "description": "Number of days from start_date to end_date. Dates use YYYY-MM-DD format.",
+        "parameters": {"type": "object", "properties": {
+            "start_date": {"type": "string", "description": "Start date, YYYY-MM-DD"},
+            "end_date": {"type": "string", "description": "End date, YYYY-MM-DD"}},
+            "required": ["start_date", "end_date"]}}},
+]
+
+
