@@ -172,3 +172,28 @@ def commit_hunks(path, dry):
     return n
 
 
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("paths", nargs="*", help="limit to these paths / folders")
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args()
+    os.chdir(git("rev-parse", "--show-toplevel").strip())
+    if git("diff", "--cached", "--name-only").strip():
+        sys.exit("index has staged changes; commit or unstage them first (git restore --staged .)")
+    spec = a.paths or ["."]
+    untracked = git("ls-files", "--others", "--exclude-standard", "--", *spec).split()
+    modified = git("diff", "--name-only", "--diff-filter=M", "--", *spec).split()
+    deleted = git("diff", "--name-only", "--diff-filter=D", "--", *spec).split()
+    total = 0
+    for p in sorted(deleted):
+        if not a.dry_run:
+            git("rm", "-q", "--cached", "--", p)
+        commit(f"{scope_of(p)}: Remove {os.path.basename(p)}", a.dry_run)
+        total += 1
+    for p in sorted(modified, key=order_key):
+        total += commit_hunks(p, a.dry_run)
+    for p in sorted(untracked, key=order_key):
+        total += commit_new_file(p, a.dry_run)
+    print(f"{'planned' if a.dry_run else 'made'} {total} commits")
+
+
