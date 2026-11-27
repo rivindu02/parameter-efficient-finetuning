@@ -135,3 +135,40 @@ def commit_new_file(path, dry):
     return len(chunks)
 
 
+# ---------------------------------------------------------------------------
+# Modified file: one commit per hunk
+# ---------------------------------------------------------------------------
+def commit_hunks(path, dry):
+    diff = git("diff", "--no-color", "--", path)
+    if not diff.strip():
+        return 0
+    header, _, body = diff.partition("\n@@")
+    hunks = ["@@" + h for h in ("\n@@" + body).split("\n@@")[1:]]
+    name = os.path.basename(path)
+    if path.endswith(".ipynb") or "Binary files" in diff or len(hunks) == 1:
+        if not dry:
+            git("add", "--", path)
+        commit(f"{scope_of(path)}: Update {name}", dry)
+        return 1
+    n = 0
+    for h in hunks:
+        m = re.match(r"@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@ ?(.*)", h)
+        ctx = m.group(2).strip() if m else ""
+        fn = re.search(r"(?:def|class)\s+(\w+)", ctx)
+        where = f"{fn.group(1)}()" if fn else f"line {m.group(1) if m else '?'}"
+        if not dry:
+            r = subprocess.run(["git", "apply", "--cached", "--recount", "-"], input=header + "\n" + h + "\n",
+                               capture_output=True, text=True)
+            if r.returncode != 0:  # hunk no longer applies on its own: stage the rest of the file
+                git("add", "--", path)
+                commit(f"{scope_of(path)}: Update {name}", dry)
+                return n + 1
+        commit(f"{scope_of(path)}: Update {where} in {name}", dry)
+        n += 1
+    if not dry and git("diff", "--name-only", "--", path).strip():
+        git("add", "--", path)
+        commit(f"{scope_of(path)}: Update {name}", dry)
+        n += 1
+    return n
+
+
