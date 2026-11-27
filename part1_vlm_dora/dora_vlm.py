@@ -454,14 +454,16 @@ def correlation_table(stats, groups=("tower", "proj")):
         steps = sorted({r["step"] for r in rows})
         within = [_pearson([r["dD"] for r in rows if r["step"] == s], [r["dM"] for r in rows if r["step"] == s])
                   for s in steps]
+        last = [r for r in rows if r["step"] == steps[-1]]
         within = [w for w in within if not math.isnan(w)]
         out.append({"group": key, "n": len(rows),
                     "pearson_pooled": _pearson(x, y), "spearman_pooled": _spearman(x, y),
-                    "pearson_within_ckpt": sum(within) / len(within) if within else float("nan")})
+                    "pearson_within_ckpt": sum(within) / len(within) if within else float("nan"),
+                    "pearson_final_ckpt": _pearson([r["dD"] for r in last], [r["dM"] for r in last])})
     return out
 
 
-def analyze(out_dir, methods=("full", "lora", "dora"), proj_filter=("q_proj", "v_proj")):
+def analyze(out_dir, methods=("full", "lora", "dora", "dora_vision", "dora_text"), proj_filter=("q_proj", "v_proj")):
     """Print correlation tables; return {method: table}. proj_filter=None uses all projections."""
     res = {}
     for m in methods:
