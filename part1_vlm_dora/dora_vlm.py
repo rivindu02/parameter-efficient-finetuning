@@ -392,3 +392,8 @@ def _pearson(x, y):
     return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else float("nan")
 
 
+def _spearman(x, y):
+    rank = lambda v: [sorted(v).index(a) for a in v]  # noqa: E731  (ties are rare for floats)
+    return _pearson(rank(x), rank(y))
+
+
