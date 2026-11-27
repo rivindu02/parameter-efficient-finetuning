@@ -103,9 +103,11 @@ print('outputs ->', OUT)
 """
 
 PULL = code("""
-# re-run after pushing code changes: pulls the latest commit and reloads modules
+# re-run after pushing code changes: syncs to the latest commit (fetch + reset) and reloads modules
 import importlib, subprocess
-print(subprocess.run(['git', '-C', '/content/repo', 'pull'], capture_output=True, text=True).stdout)
+subprocess.run(['git', '-C', '/content/repo', 'fetch', '-q', 'origin', BRANCH], check=True)
+subprocess.run(['git', '-C', '/content/repo', 'reset', '-q', '--hard', f'origin/{BRANCH}'], check=True)
+print(subprocess.run(['git', '-C', '/content/repo', 'log', '-1', '--oneline'], capture_output=True, text=True).stdout)
 for m in list(sys.modules):
     if m in MODULES: importlib.reload(sys.modules[m])
 """)
