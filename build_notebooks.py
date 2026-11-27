@@ -334,6 +334,33 @@ for m in ['full', 'lora', 'dora']:
     print(m, {t: dict(dD=f"{sum(r['dD'] for r in v)/len(v):.2e}", dM=f"{sum(r['dM'] for r in v)/len(v):.2e}", n=len(v))
               for t, v in agg.items()})
 """),
+    md("""
+## 8. Bonus: tower ablation (DoRA on one tower only)
+Same DoRA settings, but adapters only on the vision encoder (`dora_vision`) or only on the language model (`dora_text`);
+the connector is frozen in both. Tests whether the large direction change seen in the vision encoder matters for DocVQA
+accuracy, and how each tower behaves without the other adapting. ≈ 25 min train + 5 min eval per run.
+"""),
+    code("""
+import dataclasses
+for t in ['vision', 'text']:
+    c = dataclasses.replace(cfg, targets=t)
+    name = dv.run_name(c, 'dora')
+    if not os.path.exists(os.path.join(c.out_dir, f'stats_{name}.json')):
+        model, proc = dv.train_method(c, 'dora')
+        dv.evaluate_anls(c, model, proc, name)
+        del model; gc.collect(); torch.cuda.empty_cache()
+    elif dv.needs_eval(c, name):
+        model, proc = dv.load_trained(c, 'dora')
+        dv.evaluate_anls(c, model, proc, name)
+        del model; gc.collect(); torch.cuda.empty_cache()
+    else:
+        print(f'{name}: trained and evaluated already')
+"""),
+    code("""
+summary = dv.tower_summary(OUT)
+corr_abl = dv.analyze(OUT, methods=('dora', 'dora_vision', 'dora_text'), proj_filter=None)
+json.dump({'summary': summary, 'corr': corr_abl}, open(os.path.join(OUT, 'ablation.json'), 'w'), indent=1)
+"""),
 ]
 
 if __name__ == "__main__":
