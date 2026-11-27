@@ -100,3 +100,8 @@ def prepare_data(cfg: Config):
         print(f"{split}: wrote {len(recs)} examples to {meta_path}")
 
 
+def load_split(cfg, split):
+    with open(os.path.join(cfg.data_dir, f"{split}.jsonl")) as f:
+        return [json.loads(l) for l in f]
+
+
