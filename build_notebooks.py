@@ -234,3 +234,95 @@ json.dump({'base': base_sum, 'base_strong_prompt': pt_sum, 'lora': lora_sum, 'tr
 """),
 ]
 
+# ---------------------------------------------------------------------------
+# Part 1
+# ---------------------------------------------------------------------------
+p1 = [
+    md("""
+# Part 1 — Does DoRA's learning pattern transfer to a vision-language model?
+
+**Paper claim (DoRA, Liu et al. 2024, Fig. 2):** decompose each weight into magnitude and direction. Across layers and
+checkpoints, full fine-tuning shows a **negative** correlation between magnitude change ΔM and direction change ΔD; LoRA
+shows a **positive** one; DoRA's pattern resembles full fine-tuning (negative).
+
+**Hypothesis:** the same holds when SmolVLM-256M is fine-tuned on DocVQA — in the language model *and* in the vision
+encoder (bonus: per-tower analysis: vision encoder / connector / LM).
+
+Setup: SmolVLM-256M-Instruct · DocVQA subset (2000 train / 300 validation) · LoRA vs DoRA (r=8, α=16) vs full FT on the
+same targets (q,k,v,o of both towers + connector) · 1 epoch · ΔM/ΔD recorded at 8 checkpoints · ANLS for accuracy.
+Runtime: T4 GPU. Each training run ≈ 15–30 min; every result is saved to Drive, so cells can be re-run after a disconnect.
+"""),
+    code(SETUP.replace("{part}", "part1_vlm_dora") + "\n!pip -q install matplotlib"),
+    writefile("part1_vlm_dora", "dora_vlm.py"),
+    md("## 1. Config + data subset (cached as JPEG on local disk)"),
+    code("""
+import json, os, torch, gc
+import dora_vlm as dv
+SMOKE = False   # True: tiny run (16 train / 8 eval, ~5 min) to check the pipeline end to end
+if SMOKE:
+    cfg = dv.Config(out_dir=OUT + '/smoke', data_dir='/content/data_docvqa_smoke', seed=SEED,
+                    n_train=16, n_eval=8, n_snapshots=2, eval_batch=4)
+else:
+    cfg = dv.Config(out_dir=OUT, data_dir='/content/data_docvqa', seed=SEED)
+print(cfg)
+dv.prepare_data(cfg)
+dv.show_masking(cfg)   # only the answer tokens should be supervised
+"""),
+    md("## 2. Zero-shot baseline"),
+    code("""
+if not os.path.exists(os.path.join(OUT, 'eval_zeroshot.json')):
+    model, proc = dv.load_model_and_processor(cfg)
+    dv.evaluate_anls(cfg, model.to('cuda'), proc, 'zeroshot')
+    del model; gc.collect(); torch.cuda.empty_cache()
+"""),
+    md("## 3. Training runs (one cell each, skipped if results already on Drive)"),
+    *[code(f"""
+if not os.path.exists(os.path.join(OUT, 'eval_{m}.json')):
+    model, proc = dv.train_method(cfg, '{m}')
+    dv.evaluate_anls(cfg, model, proc, '{m}')
+    del model; gc.collect(); torch.cuda.empty_cache()
+""") for m in ["lora", "dora", "full"]],
+    md("## 4. Accuracy: zero-shot vs adapted"),
+    code("""
+rows = []
+for n in ['zeroshot', 'lora', 'dora', 'full']:
+    p = os.path.join(OUT, f'eval_{n}.json')
+    if os.path.exists(p):
+        r = json.load(open(p)); rows.append((n, r['anls'], r['exact_match']))
+print(f"{'model':<10}{'ANLS':>8}{'EM':>8}")
+for n, a, e in rows: print(f'{n:<10}{a:>8.2f}{e:>8.2f}')
+"""),
+    md("""
+## 5. Claim test: ΔM vs ΔD correlation
+`r_pooled`: all (layer, checkpoint) points, as in the paper's Fig. 2. `r_within`: mean across-layer correlation per checkpoint
+(removes the trivial "both grow over time" trend). Paper's prediction: **full < 0, LoRA > 0, DoRA < 0**.
+First q/v projections (the modules analysed in the paper), then all projections.
+"""),
+    code("corr_qv = dv.analyze(OUT, proj_filter=('q_proj', 'v_proj'))"),
+    code("corr_all = dv.analyze(OUT, proj_filter=None)\njson.dump({'qv': corr_qv, 'all': corr_all}, open(os.path.join(OUT, 'correlations.json'), 'w'), indent=1)"),
+    md("## 6. Fig. 2-style scatter plots, per tower"),
+    code("""
+from IPython.display import Image, display
+for tower in ['text', 'vision']:
+    for proj in ['q_proj', 'v_proj']:
+        display(Image(dv.plot_scatter(OUT, tower=tower, proj=proj)))
+"""),
+    md("""
+## 7. Bonus: where does the adaptation happen?
+Mean ΔD and ΔM per tower at the last checkpoint: does each method move the vision encoder, the connector or the language
+model the most, and does DoRA's magnitude/direction split behave differently in the vision encoder?
+"""),
+    code("""
+from collections import defaultdict
+for m in ['full', 'lora', 'dora']:
+    p = os.path.join(OUT, f'stats_{m}.json')
+    if not os.path.exists(p): continue
+    st = json.load(open(p))['stats']; last = max(r['step'] for r in st)
+    agg = defaultdict(list)
+    for r in st:
+        if r['step'] == last: agg[r['tower']].append(r)
+    print(m, {t: dict(dD=f"{sum(r['dD'] for r in v)/len(v):.2e}", dM=f"{sum(r['dM'] for r in v)/len(v):.2e}", n=len(v))
+              for t, v in agg.items()})
+"""),
+]
+
