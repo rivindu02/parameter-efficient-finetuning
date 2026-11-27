@@ -185,3 +185,111 @@ def spoken_date(d, style):
     return f"{MONTHS[d.month - 1]} {d.day}, {d.year}"  # test uses written dates
 
 
+def build(rng, category, split):
+    """Return (query, gold_calls, checks, final_answer_text_fn) for one example."""
+    tmpl = rng.choice(T[category][split]) if category in T else None
+
+    if category == "weather":
+        city = rng.choice(CITIES)
+        q = tmpl.format(city=city if rng.random() > 0.15 else city.lower())
+        calls = [("get_weather", {"city": city})]
+
+        def answer(results):
+            r = results[0]
+            return rng.choice([
+                f"It's currently {r['temperature_c']}°C and {r['condition']} in {r['city']}.",
+                f"The weather in {r['city']} is {r['condition']} with a temperature of {r['temperature_c']}°C.",
+            ])
+        t, c = WEATHER[city.lower()]
+        checks = [{"type": "num", "value": t}, {"type": "str", "value": c}]
+
+    elif category == "stock":
+        tk = rng.choice(TICKERS)
+        q = tmpl.format(ticker=tk)
+        calls = [("get_stock_price", {"ticker": tk})]
+
+        def answer(results):
+            r = results[0]
+            return rng.choice([f"{r['ticker']} is trading at ${fmt_num(r['price_usd'])} per share.",
+                               f"The current price of {r['ticker']} is ${fmt_num(r['price_usd'])}."])
+        checks = [{"type": "num", "value": STOCKS[tk]}]
+
+    elif category == "calc":
+        q_t, e_t = tmpl
+        a, b, c = rng.randint(12, 999), rng.randint(2, 99), rng.randint(2, 19)
+        if "** 3" in e_t:
+            a = rng.randint(2, 25)
+        if "/" in e_t:
+            a = b * rng.randint(2, 60) if rng.random() < 0.6 else a
+        expr = e_t.format(a=a, b=b, c=c)
+        q = q_t.format(a=a, b=b, c=c)
+        calls = [("calculator", {"expression": expr})]
+        value = execute_tool("calculator", {"expression": expr})["result"]
+
+        def answer(results):
+            return rng.choice([f"The result is {fmt_num(results[0]['result'])}.",
+                               f"{expr} = {fmt_num(results[0]['result'])}."])
+        checks = [{"type": "num", "value": value}]
+
+    elif category == "convert":
+        su, tu, cf, ct = rng.choice(UNIT_PAIRS)
+        v = rng.choice([rng.randint(1, 500), round(rng.uniform(0.5, 120), 1)])
+        q = tmpl.format(v=fmt_num(v), fu=su, tu=tu)
+        calls = [("convert_units", {"value": v, "from_unit": cf, "to_unit": ct})]
+        value = execute_tool("convert_units", calls[0][1])["result"]
+
+        def answer(results):
+            r = results[0]
+            return f"{fmt_num(v)} {su} is about {fmt_num(r['result'])} {tu}."
+        checks = [{"type": "num", "value": value}]
+
+    elif category == "days":
+        d1 = random_date(rng)
+        import datetime as dt
+        d2 = d1 + dt.timedelta(days=rng.randint(3, 400))
+        style = "iso" if split == "train" else "written"
+        q = tmpl.format(d1=spoken_date(d1, style), d2=spoken_date(d2, style))
+        calls = [("days_between", {"start_date": d1.isoformat(), "end_date": d2.isoformat()})]
+
+        def answer(results):
+            return f"There are {results[0]['days']} days between {spoken_date(d1, style)} and {spoken_date(d2, style)}."
+        checks = [{"type": "num", "value": (d2 - d1).days}]
+
+    elif category == "weather_f":
+        city = rng.choice(CITIES)
+        q = tmpl.format(city=city)
+        t, _ = WEATHER[city.lower()]
+        calls = [("get_weather", {"city": city}),
+                 ("convert_units", {"value": t, "from_unit": "C", "to_unit": "F"})]
+        value = execute_tool("convert_units", calls[1][1])["result"]
+
+        def answer(results):
+            return f"It's {results[0]['temperature_c']}°C in {city}, which is about {fmt_num(results[1]['result'])}°F."
+        checks = [{"type": "num", "value": value}]
+
+    elif category == "stock_shares":
+        tk, n = rng.choice(TICKERS), rng.randint(2, 60)
+        q = tmpl.format(ticker=tk, n=n)
+        calls = [("get_stock_price", {"ticker": tk}),
+                 ("calculator", {"expression": f"{STOCKS[tk]} * {n}"})]
+        value = execute_tool("calculator", calls[1][1])["result"]
+
+        def answer(results):
+            return (f"{tk} costs ${fmt_num(results[0]['price_usd'])} per share, so {n} shares "
+                    f"would cost ${fmt_num(results[1]['result'])}.")
+        checks = [{"type": "num", "value": value}]
+
+    elif category == "no_tool":
+        q, ans, kw = rng.choice(NO_TOOL[split])
+        calls = []
+
+        def answer(results):
+            return ans
+        checks = [{"type": "str", "value": kw}] if kw else []
+
+    else:
+        raise ValueError(category)
+
+    return q, calls, checks, answer
+
+
