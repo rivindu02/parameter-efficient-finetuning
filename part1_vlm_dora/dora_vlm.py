@@ -232,3 +232,13 @@ def make_batch(proc, examples, device):
     return {k: v.to(device) for k, v in enc.items()}
 
 
+def show_masking(cfg, n=2):
+    """Sanity check: decode the supervised tokens of a few training examples."""
+    _, proc = load_model_and_processor(cfg)
+    b = make_batch(proc, load_split(cfg, cfg.train_split)[:n], "cpu")
+    for i in range(n):
+        ids = b["input_ids"][i][b["labels"][i] != -100]
+        print(f"seq len {int(b['attention_mask'][i].sum())}, supervised {len(ids)} tokens: "
+              f"{proc.tokenizer.decode(ids)!r}")
+
+
