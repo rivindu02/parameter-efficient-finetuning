@@ -107,3 +107,26 @@ def calculator(expression):
     return {"expression": str(expression), "result": round(float(value), 4)}
 
 
+def convert_units(value, from_unit, to_unit):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return {"error": "value must be a number"}
+    f, t = canon_unit(from_unit), canon_unit(to_unit)
+    if f is None or t is None:
+        return {"error": f"unknown unit(s): {from_unit}, {to_unit}"}
+    if f == t:
+        out = value
+    elif (f, t) == ("C", "F"):
+        out = value * 9 / 5 + 32
+    elif (f, t) == ("F", "C"):
+        out = (value - 32) * 5 / 9
+    elif (f, t) in _LINEAR:
+        out = value * _LINEAR[(f, t)]
+    elif (t, f) in _LINEAR:
+        out = value / _LINEAR[(t, f)]
+    else:
+        return {"error": f"cannot convert {from_unit} to {to_unit}"}
+    return {"value": value, "from_unit": f, "to_unit": t, "result": round(out, 2)}
+
+
