@@ -21,3 +21,13 @@ from tools import TOOLS, canon_unit, eval_expression, parse_date
 _NUM_RE = re.compile(r"-?\d[\d,]*\.?\d*")
 
 
+# ----------------------------------------------------------------------------
+# Argument normalisation / call matching
+# ----------------------------------------------------------------------------
+def _num(x):
+    try:
+        return float(str(x).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+
+
