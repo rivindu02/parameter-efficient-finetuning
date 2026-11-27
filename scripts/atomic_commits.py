@@ -156,6 +156,10 @@ def commit_hunks(path, dry):
         ctx = m.group(2).strip() if m else ""
         fn = re.search(r"(?:def|class)\s+(\w+)", ctx)
         where = f"{fn.group(1)}()" if fn else f"line {m.group(1) if m else '?'}"
+        added = re.findall(r"^\+\s*def (\w+)", h, re.M)
+        removed = re.findall(r"^-\s*def (\w+)", h, re.M)
+        new_defs = [d for d in added if d not in removed]
+        changed = [d for d in added if d in removed]
         if not dry:
             r = subprocess.run(["git", "apply", "--cached", "--recount", "-"], input=header + "\n" + h + "\n",
                                capture_output=True, text=True)
