@@ -210,3 +210,15 @@ TOOL_SCHEMAS = [
 ]
 
 
+def execute_tool(name, arguments):
+    """Run a tool by name. Always returns a JSON-serialisable dict."""
+    if name not in TOOLS:
+        return {"error": f"unknown tool '{name}'"}
+    if not isinstance(arguments, dict):
+        return {"error": "arguments must be an object"}
+    try:
+        return TOOLS[name](**arguments)
+    except TypeError as e:
+        return {"error": f"bad arguments: {e}"}
+
+
