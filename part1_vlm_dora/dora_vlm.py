@@ -441,3 +441,34 @@ def analyze(out_dir, methods=("full", "lora", "dora"), proj_filter=("q_proj", "v
     return res
 
 
+def plot_scatter(out_dir, methods=("full", "lora", "dora"), tower="text", proj="q_proj", fname=None):
+    """DoRA Fig. 2 style: dD (x) vs dM (y), colour = checkpoint, one panel per method."""
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, len(methods), figsize=(4.2 * len(methods), 3.6))
+    for ax, m in zip(axes, methods):
+        p = os.path.join(out_dir, f"stats_{m}.json")
+        if not os.path.exists(p):
+            continue
+        st = [r for r in json.load(open(p))["stats"] if r["tower"] == tower and r["proj"] == proj]
+        steps = sorted({r["step"] for r in st})
+        cmap = plt.get_cmap("viridis")
+        for i, s in enumerate(steps):
+            pts = [r for r in st if r["step"] == s]
+            ax.scatter([r["dD"] for r in pts], [r["dM"] for r in pts], s=14,
+                       color=cmap(i / max(len(steps) - 1, 1)), label=f"step {s}")
+        x, y = [r["dD"] for r in st], [r["dM"] for r in st]
+        if len(x) > 2:
+            mx, my = sum(x) / len(x), sum(y) / len(y)
+            sl = sum((a - mx) * (b - my) for a, b in zip(x, y)) / max(sum((a - mx) ** 2 for a in x), 1e-30)
+            xs = [min(x), max(x)]
+            ax.plot(xs, [my + sl * (v - mx) for v in xs], "k--", lw=1)
+            ax.set_title(f"{m.upper()}  r={_pearson(x, y):.2f}")
+        ax.set_xlabel("ΔD (direction)")
+        ax.set_ylabel("ΔM (magnitude)")
+        ax.ticklabel_format(style="sci", scilimits=(-2, 2))
+    axes[-1].legend(fontsize=6, loc="best")
+    fig.suptitle(f"{tower} tower, {proj}")
+    fig.tight_layout()
+    fname = fname or os.path.join(out_dir, f"fig_{tower}_{proj}.png")
+    fig.savefig(fname, dpi=150)
+    return fname
