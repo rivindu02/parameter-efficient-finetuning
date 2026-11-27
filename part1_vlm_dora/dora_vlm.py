@@ -203,3 +203,13 @@ def snapshot_stats(targets, W0s, step):
     return rows
 
 
+# ----------------------------------------------------------------------------
+# Training
+# ----------------------------------------------------------------------------
+def _find_sub(seq, sub):
+    for i in range(len(seq) - len(sub), -1, -1):
+        if seq[i:i + len(sub)] == sub:
+            return i
+    return -1
+
+
