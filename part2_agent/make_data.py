@@ -293,3 +293,26 @@ def build(rng, category, split):
     return q, calls, checks, answer
 
 
+def to_record(idx, split, category, q, calls, checks, answer):
+    msgs = [{"role": "user", "content": q}]
+    results = []
+    for name, args in calls:  # one call per assistant turn (sequential chain)
+        msgs.append({"role": "assistant", "content": "",
+                     "tool_calls": [{"type": "function", "function": {"name": name, "arguments": args}}]})
+        r = execute_tool(name, args)
+        assert "error" not in r, (name, args, r)
+        results.append(r)
+        msgs.append({"role": "tool", "name": name, "content": tool_result_str(r)})
+    msgs.append({"role": "assistant", "content": answer(results)})
+    return {"id": f"{split}-{idx:04d}", "split": split, "category": category, "query": q,
+            "gold_calls": [{"name": n, "arguments": a} for n, a in calls],
+            "checks": checks, "messages": msgs}
+
+
+# category -> count
+TRAIN_MIX = {"weather": 110, "stock": 110, "calc": 110, "convert": 110, "days": 100,
+             "weather_f": 50, "stock_shares": 50, "no_tool": 160}            # = 800
+TEST_MIX = {"weather": 12, "stock": 12, "calc": 12, "convert": 12, "days": 12,
+            "weather_f": 10, "stock_shares": 10, "no_tool": 20}               # = 100
+
+
