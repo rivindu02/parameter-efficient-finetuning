@@ -117,3 +117,18 @@ def _messages(question, answer=None):
     return msgs
 
 
+# ----------------------------------------------------------------------------
+# Model
+# ----------------------------------------------------------------------------
+def load_model_and_processor(cfg):
+    from transformers import AutoProcessor
+    try:
+        from transformers import AutoModelForImageTextToText as AutoVLM
+    except ImportError:  # older transformers
+        from transformers import AutoModelForVision2Seq as AutoVLM
+    proc = AutoProcessor.from_pretrained(cfg.model_id)
+    proc.image_processor.size = {"longest_edge": cfg.image_longest_edge}
+    model = AutoVLM.from_pretrained(cfg.model_id, dtype=torch.float32)
+    return model, proc
+
+
