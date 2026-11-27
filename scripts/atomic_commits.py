@@ -112,3 +112,26 @@ def py_chunks(path, text):
     return [(end, label) for end, label in out]
 
 
+def commit_new_file(path, dry):
+    with open(path, "rb") as f:
+        data = f.read()
+    scope = scope_of(path)
+    chunks = []
+    if path.endswith(".py"):
+        text = data.decode("utf-8", errors="replace")
+        lines = text.splitlines(keepends=True)
+        chunks = [("".join(lines[:end]).encode(), label) for end, label in py_chunks(path, text)]
+    if len(chunks) <= 1:
+        stage_blob(path, data) if not dry else None
+        commit(f"{scope}: Add {path.split('/')[-1] if scope != 'repo' else path}", dry)
+        return 1
+    for content, label in chunks:
+        if not dry:
+            stage_blob(path, content)
+        commit(f"{scope}: {label}", dry)
+    if chunks[-1][0] != data and not dry:  # trailing text after the last block
+        stage_blob(path, data)
+        commit(f"{scope}: Finish {os.path.basename(path)}", dry)
+    return len(chunks)
+
+
