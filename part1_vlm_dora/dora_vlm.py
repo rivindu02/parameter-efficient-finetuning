@@ -512,3 +512,24 @@ def plot_scatter(out_dir, methods=("full", "lora", "dora"), tower="text", proj="
     fname = fname or os.path.join(out_dir, f"fig_{tower}_{proj}.png")
     fig.savefig(fname, dpi=150)
     return fname
+
+
+def tower_summary(out_dir, runs=("full", "lora", "dora", "dora_vision", "dora_text")):
+    """Mean dM, dD per tower at the last checkpoint of each run, plus the run's ANLS."""
+    out = {}
+    for m in runs:
+        p = os.path.join(out_dir, f"stats_{m}.json")
+        if not os.path.exists(p):
+            continue
+        st = json.load(open(p))["stats"]
+        last = max(r["step"] for r in st)
+        ev = os.path.join(out_dir, f"eval_{m}.json")
+        row = {"anls": json.load(open(ev))["anls"] if os.path.exists(ev) else float("nan")}
+        for t in ("vision", "connector", "text"):
+            v = [r for r in st if r["step"] == last and r["tower"] == t]
+            if v:
+                row[t] = {"dM": sum(r["dM"] for r in v) / len(v), "dD": sum(r["dD"] for r in v) / len(v)}
+        out[m] = row
+        print(f"{m:<12} ANLS {row['anls']:6.2f}  " + "  ".join(
+            f"{t}: dM={row[t]['dM']:.2e} dD={row[t]['dD']:.2e}" for t in ("vision", "connector", "text") if t in row))
+    return out
