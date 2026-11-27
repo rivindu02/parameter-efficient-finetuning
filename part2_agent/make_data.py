@@ -168,3 +168,8 @@ MONTHS = ["January", "February", "March", "April", "May", "June", "July", "Augus
           "September", "October", "November", "December"]
 
 
+def fmt_num(x):
+    x = round(float(x), 2)
+    return str(int(x)) if x == int(x) else f"{x:.2f}".rstrip("0").rstrip(".")
+
+
