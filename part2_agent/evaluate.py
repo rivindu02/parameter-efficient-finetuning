@@ -142,3 +142,30 @@ FAILURE_CATEGORIES = [
 ]
 
 
+def categorize(ex, tr, pcalls):
+    gold = ex["gold_calls"]
+    any_attempt = any(st["attempted"] for st in tr["steps"])
+    any_invalid = any(st["attempted"] and not st["valid"] for st in tr["steps"])
+    if not gold:
+        return "unnecessary_call" if any_attempt else "wrong_answer"
+    if not any_attempt:
+        return "missed_call"
+    pcalls = attempted_calls(tr)
+    if any_invalid and not pcalls:
+        return "wrong_format"
+    # compare call by call
+    for i, g in enumerate(gold):
+        if i >= len(pcalls):
+            return "wrong_format" if any_invalid else "incomplete_chain"
+        p = pcalls[i]
+        if p["name"] != g["name"]:
+            return "wrong_tool"
+        if not args_match(g["name"], p["arguments"], g["arguments"]):
+            return "wrong_argument"
+    if len(pcalls) > len(gold):
+        return "extra_calls"
+    if any(st["attempted"] and not format_ok(st) for st in tr["steps"]):
+        return "wrong_format"
+    return "ignored_result"
+
+
