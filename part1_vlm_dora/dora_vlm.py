@@ -314,27 +314,27 @@ def train_method(cfg: Config, method: str):
             step += 1
             log.append({"step": step, "loss": loss_sum})
             if step % 10 == 0 or step == 1:
-                print(f"[{method}] step {step}/{total} loss {loss_sum:.4f} {time.time() - t0:.0f}s", flush=True)
+                print(f"[{name}] step {step}/{total} loss {loss_sum:.4f} {time.time() - t0:.0f}s", flush=True)
             if step in snap_at:
                 stats += snapshot_stats(targets, W0s, step)
 
     os.makedirs(cfg.out_dir, exist_ok=True)
-    with open(os.path.join(cfg.out_dir, f"stats_{method}.json"), "w") as f:
-        json.dump({"config": asdict(cfg), "method": method, "steps": step, "seconds": time.time() - t0,
+    with open(os.path.join(cfg.out_dir, f"stats_{name}.json"), "w") as f:
+        json.dump({"config": asdict(cfg), "method": method, "run": name, "steps": step, "seconds": time.time() - t0,
                    "snap_at": snap_at, "stats": stats, "log": log}, f)
-    save_dir = os.path.join(cfg.out_dir, f"model_{method}")
+    save_dir = os.path.join(cfg.out_dir, f"model_{name}")
     if method == "full":
         model.save_pretrained(save_dir, safe_serialization=True)
     else:
         model.save_pretrained(save_dir)
-    print(f"[{method}] done in {time.time() - t0:.0f}s; stats + weights in {cfg.out_dir}")
+    print(f"[{name}] done in {time.time() - t0:.0f}s; stats + weights in {cfg.out_dir}")
     model.eval()
     return model, proc
 
 
 def load_trained(cfg, method):
     """Reload a finished run (model_<method> on Drive) for re-evaluation without retraining."""
-    path = os.path.join(cfg.out_dir, f"model_{method}")
+    path = os.path.join(cfg.out_dir, f"model_{run_name(cfg, method)}")
     model, proc = load_model_and_processor(cfg)
     if method == "full":
         model = type(model).from_pretrained(path, dtype=torch.float32)
