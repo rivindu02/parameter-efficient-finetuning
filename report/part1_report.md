@@ -89,7 +89,7 @@ This should hold in the language model **and** in the vision encoder, which the 
 - **The FT and LoRA half of the claim transfers** for the query projection, the matrix the paper analyses:
   - FT is negative in both towers. It is strongest in the vision encoder, where ρ = −0.50 and *r* = −0.41 with layer 0 removed.
   - LoRA is positive.
-- **The DoRA half does not.** In every q and k projection DoRA's sign is positive, like LoRA's. In both towers its per-layer pattern follows LoRA, not FT.
+- **The DoRA half does not.** In every q and k projection DoRA's sign is positive, like LoRA's. In both towers its per-layer pattern follows LoRA, not FT. Its answers do too: DoRA gives the same answer as LoRA on 265 of 300 questions, but the same as full FT on only 147.
 - **DoRA does decouple the two components, but only in scale.** For about the same ΔD as LoRA (3.1e-5 vs 3.1e-5 in the vision encoder), DoRA moves magnitude **8×** more (8.8e-4 vs 1.0e-4). The learned magnitude vector absorbs a uniform per-layer rescale, but it does not produce FT's trade-off between layers.
 - **Outside q and k the signs are mixed** for every method, including FT's positive v and o projections. So the clean negative slope looks specific to the query and key projections, not a general property of FT.
 - **Verdict:** the hypothesis is **partly refuted**. In SmolVLM, DoRA reproduces neither FT's ΔM–ΔD pattern nor a reliable accuracy gain.
