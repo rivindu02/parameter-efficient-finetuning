@@ -11,3 +11,7 @@ import os
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
+def md(src):
+    return {"cell_type": "markdown", "metadata": {}, "source": src.strip("\n")}
+
+
