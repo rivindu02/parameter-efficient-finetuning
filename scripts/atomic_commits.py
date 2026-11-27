@@ -167,7 +167,13 @@ def commit_hunks(path, dry):
                 git("add", "--", path)
                 commit(f"{scope_of(path)}: Update {name}", dry)
                 return n + 1
-        commit(f"{scope_of(path)}: Update {where} in {name}", dry)
+        if new_defs:
+            msg = f"Add {', '.join(d + '()' for d in new_defs)} to {name}"
+        elif changed:
+            msg = f"Update {', '.join(d + '()' for d in changed)} in {name}"
+        else:
+            msg = f"Update {where} in {name}"
+        commit(f"{scope_of(path)}: {msg}", dry)
         n += 1
     if not dry and git("diff", "--name-only", "--", path).strip():
         git("add", "--", path)
