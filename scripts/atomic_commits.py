@@ -60,3 +60,11 @@ def stage_blob(path, content: bytes):
     git("update-index", "--add", "--cacheinfo", f"{file_mode(path)},{sha},{path}")
 
 
+def commit(msg, dry):
+    if dry:
+        print("  " + msg)
+        return
+    git("commit", "-q", "--no-verify", "-m", msg)
+    print("  " + msg)
+
+
