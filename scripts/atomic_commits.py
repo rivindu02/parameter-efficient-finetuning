@@ -197,3 +197,5 @@ def main():
     print(f"{'planned' if a.dry_run else 'made'} {total} commits")
 
 
+if __name__ == "__main__":
+    main()
