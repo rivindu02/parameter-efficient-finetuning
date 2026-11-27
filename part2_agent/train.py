@@ -127,3 +127,17 @@ def train(train_path, out_dir, model_id=MODEL_ID, epochs=2, lr=2e-4, batch_size=
     return out_dir
 
 
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--train", default=os.path.join(os.path.dirname(__file__), "data", "train.jsonl"))
+    ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "outputs", "lora_adapter"))
+    ap.add_argument("--epochs", type=int, default=2)
+    ap.add_argument("--lr", type=float, default=2e-4)
+    ap.add_argument("--batch_size", type=int, default=8)
+    ap.add_argument("--micro_batch", type=int, default=4)
+    ap.add_argument("--r", type=int, default=16)
+    ap.add_argument("--max_steps", type=int, default=None)
+    ap.add_argument("--seed", type=int, default=42)
+    a = ap.parse_args()
+    train(a.train, a.out, epochs=a.epochs, lr=a.lr, batch_size=a.batch_size, micro_batch=a.micro_batch,
+          r=a.r, max_steps=a.max_steps, seed=a.seed)
