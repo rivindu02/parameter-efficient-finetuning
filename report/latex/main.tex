@@ -163,6 +163,7 @@ The paper predicts FT $<0$, LoRA $>0$ and DoRA $<0$.
   \item \textbf{The FT and LoRA half of the claim transfers} for the query projection, the matrix the paper analyses.
         FT is negative in both towers, most clearly in the vision encoder ($\rho=-0.50$; $r=-0.41$ with layer 0 removed), and LoRA is positive.
   \item \textbf{The DoRA half does not.} In every q and k projection DoRA's sign is positive. In both towers its per-layer pattern follows LoRA, not FT (Fig.~\ref{fig:corr}).
+        Its answers do too: DoRA gives the same answer as LoRA on 265 of 300 questions, but the same as full FT on only 147.
   \item \textbf{DoRA decouples the two components only in scale.} For the same $\dD$ as LoRA in the vision encoder ($3.1\times10^{-5}$ for both), DoRA moves magnitude $8\times$ more ($8.8\times10^{-4}$ vs.\ $1.0\times10^{-4}$).
         The learned magnitude vector absorbs a uniform per-layer rescale, but it does not produce FT's trade-off between layers.
   \item \textbf{Outside q and k the signs are mixed} for every method, including FT's positive v and o projections, so the negative slope looks specific to the query and key projections.
