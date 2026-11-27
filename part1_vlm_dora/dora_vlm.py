@@ -213,3 +213,22 @@ def _find_sub(seq, sub):
     return -1
 
 
+def make_batch(proc, examples, device):
+    texts = [proc.apply_chat_template(_messages(e["question"], e["answers"][0]), add_generation_prompt=False)
+             for e in examples]
+    images = [[_load_image(e["image"])] for e in examples]
+    proc.tokenizer.padding_side = "right"
+    enc = proc(text=texts, images=images, return_tensors="pt", padding=True)
+    labels = torch.full_like(enc["input_ids"], -100)
+    marker = proc.tokenizer.encode("Assistant:", add_special_tokens=False)
+    for i, ids in enumerate(enc["input_ids"].tolist()):
+        j = _find_sub(ids, marker)
+        n = int(enc["attention_mask"][i].sum())
+        if j >= 0:  # supervise only the answer (+ end-of-utterance token)
+            labels[i, j + len(marker):n] = enc["input_ids"][i, j + len(marker):n]
+        else:
+            print("WARNING: 'Assistant:' marker not found; example gets no loss")
+    enc["labels"] = labels
+    return {k: v.to(device) for k, v in enc.items()}
+
+
