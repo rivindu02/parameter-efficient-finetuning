@@ -148,3 +148,13 @@ def get_stock_price(ticker):
 _DATE_FORMATS = ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"]
 
 
+def parse_date(s):
+    s = str(s).strip()
+    for fmt in _DATE_FORMATS:
+        try:
+            return dt.datetime.strptime(s, fmt).date()
+        except ValueError:
+            pass
+    return None
+
+
