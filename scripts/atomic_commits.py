@@ -43,3 +43,10 @@ def scope_of(path):
     return parts[0] if len(parts) > 1 else "repo"
 
 
+def order_key(path):
+    for i, pat in enumerate(ORDER):
+        if re.search(pat, path):
+            return (i, path)
+    return (len(ORDER), path)
+
+
