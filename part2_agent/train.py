@@ -21,3 +21,9 @@ from tools import TOOL_SCHEMAS
 _ASSIST_RE = re.compile(r"<\|im_start\|>assistant\n(.*?<\|im_end\|>)", re.S)
 
 
+def set_seed(seed):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
