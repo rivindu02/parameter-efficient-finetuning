@@ -50,3 +50,7 @@ def order_key(path):
     return (len(ORDER), path)
 
 
+def file_mode(path):
+    return "100755" if os.access(path, os.X_OK) else "100644"
+
+
