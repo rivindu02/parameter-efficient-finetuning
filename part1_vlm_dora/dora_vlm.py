@@ -165,3 +165,14 @@ def _clean_name(n):
     return n.replace("base_model.model.", "")
 
 
+def find_targets(model, regex):
+    """name -> module for every Linear-like module to track (peft-wrapped or plain)."""
+    pat = re.compile(regex)
+    out = {}
+    for n, mod in model.named_modules():
+        cn = _clean_name(n)
+        if pat.fullmatch(cn) and (hasattr(mod, "lora_A") or isinstance(mod, torch.nn.Linear)):
+            out[cn] = mod
+    return out
+
+
