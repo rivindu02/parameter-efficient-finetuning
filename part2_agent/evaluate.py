@@ -89,3 +89,9 @@ def str_ok(value, text):
     return bool(words) and all(re.search(r"\b" + re.escape(_stem(w)), text) for w in words)
 
 
+def calls_match(pred, gold):
+    return len(pred) == len(gold) and all(
+        p["name"] == g["name"] and args_match(g["name"], p["arguments"], g["arguments"])
+        for p, g in zip(pred, gold))
+
+
