@@ -19,3 +19,8 @@ def code(src):
     return {"cell_type": "code", "metadata": {}, "execution_count": None, "outputs": [], "source": src.strip("\n")}
 
 
+def writefile(folder, name):
+    with open(os.path.join(ROOT, folder, name)) as f:
+        return code(f"%%writefile {name}\n" + f.read())
+
+
