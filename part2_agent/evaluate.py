@@ -61,3 +61,9 @@ def pred_calls(trace):
     return [c for st in trace["steps"] if st["valid"] for c in st["calls"]]
 
 
+def format_ok(st):
+    """Turn parses as <tool_call>{json with name + object arguments}</tool_call>, whatever the tool name."""
+    return bool(st["attempted"] and (st["valid"] or any(
+        isinstance(c.get("arguments"), dict) for c in st["calls"])))
+
+
