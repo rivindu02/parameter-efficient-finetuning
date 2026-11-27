@@ -94,3 +94,8 @@ def _safe_eval(node):
     raise ValueError("unsupported expression")
 
 
+def eval_expression(expression):
+    expr = str(expression).replace("^", "**").replace("×", "*").replace("÷", "/").replace(",", "")
+    return _safe_eval(ast.parse(expr, mode="eval"))
+
+
