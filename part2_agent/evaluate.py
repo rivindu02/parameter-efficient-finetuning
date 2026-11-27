@@ -221,3 +221,17 @@ def load_jsonl(path):
         return [json.loads(line) for line in f]
 
 
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--test", required=True)
+    ap.add_argument("--traces", nargs="+", required=True, help="name=path.jsonl")
+    a = ap.parse_args()
+    test = load_jsonl(a.test)
+    sums, rows = {}, {}
+    for spec in a.traces:
+        name, path = spec.split("=")
+        rows[name], sums[name] = evaluate(test, load_jsonl(path))
+    print_table(sums)
+    if len(rows) == 2:
+        n1, n2 = list(rows)
+        print(json.dumps(compare(rows[n1], rows[n2]), indent=2))
