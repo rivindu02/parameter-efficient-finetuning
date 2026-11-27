@@ -326,6 +326,24 @@ def train_method(cfg: Config, method: str):
     return model, proc
 
 
+def load_trained(cfg, method):
+    """Reload a finished run (model_<method> on Drive) for re-evaluation without retraining."""
+    path = os.path.join(cfg.out_dir, f"model_{method}")
+    model, proc = load_model_and_processor(cfg)
+    if method == "full":
+        model = type(model).from_pretrained(path, dtype=torch.float32)
+    else:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, path)
+    return model.to("cuda" if torch.cuda.is_available() else "cpu").eval(), proc
+
+
+def needs_eval(cfg, name):
+    """True if eval_<name>.json is missing or from the old format without all predictions."""
+    p = os.path.join(cfg.out_dir, f"eval_{name}.json")
+    return not os.path.exists(p) or "predictions" not in json.load(open(p))
+
+
 # ----------------------------------------------------------------------------
 # Evaluation: ANLS (DocVQA metric)
 # ----------------------------------------------------------------------------
