@@ -190,3 +190,16 @@ def evaluate(test, traces):
     return rows, summarize(rows)
 
 
+def compare(rows_base, rows_lora):
+    """Transitions per example between baseline and LoRA (fixed / persisted / introduced)."""
+    out = {"fixed": Counter(), "persisted": Counter(), "introduced": Counter()}
+    for b, l in zip(rows_base, rows_lora):
+        if b["failure"] and not l["failure"]:
+            out["fixed"][b["failure"]] += 1
+        elif b["failure"] and l["failure"]:
+            out["persisted"][f"{b['failure']} -> {l['failure']}"] += 1
+        elif l["failure"] and not b["failure"]:
+            out["introduced"][l["failure"]] += 1
+    return {k: dict(v) for k, v in out.items()}
+
+
