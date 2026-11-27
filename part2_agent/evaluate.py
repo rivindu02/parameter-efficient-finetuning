@@ -67,3 +67,7 @@ def format_ok(st):
         isinstance(c.get("arguments"), dict) for c in st["calls"])))
 
 
+def hallucinated_tool(st):
+    return bool(st["attempted"] and not st["valid"] and any(c.get("name") not in TOOLS for c in st["calls"]))
+
+
