@@ -242,3 +242,87 @@ def show_masking(cfg, n=2):
               f"{proc.tokenizer.decode(ids)!r}")
 
 
+def train_method(cfg: Config, method: str):
+    """method in {"full", "lora", "dora"}. Saves stats_<method>.json + weights."""
+    assert method in ("full", "lora", "dora")
+    set_seed(cfg.seed)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    use_amp = device == "cuda"
+    model, proc = load_model_and_processor(cfg)
+    regex = target_regex(cfg.targets)
+
+    if method == "full":
+        for p in model.parameters():
+            p.requires_grad = True
+        lr = cfg.lr_full
+    else:
+        from peft import LoraConfig, get_peft_model
+        lcfg = LoraConfig(r=cfg.rank, lora_alpha=cfg.alpha, lora_dropout=cfg.dropout,
+                          target_modules=regex, use_dora=(method == "dora"), init_lora_weights=True)
+        model = get_peft_model(model, lcfg)
+        model.print_trainable_parameters()
+        lr = cfg.lr_adapter
+    model.to(device)
+    model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
+
+    targets = find_targets(model, regex)
+    W0s = {n: effective_weight(m).clone() for n, m in targets.items()}
+    print(f"tracking {len(targets)} weight matrices "
+          f"({sum(tower_of(n) == 'vision' for n in targets)} vision, "
+          f"{sum(tower_of(n) == 'connector' for n in targets)} connector, "
+          f"{sum(tower_of(n) == 'text' for n in targets)} text)")
+
+    data = load_split(cfg, cfg.train_split)
+    accum = max(cfg.batch_size // cfg.micro_batch, 1)
+    total = math.ceil(len(data) / cfg.batch_size) * cfg.epochs
+    snap_at = sorted({max(1, round(total * (k + 1) / cfg.n_snapshots)) for k in range(cfg.n_snapshots)})
+    params = [p for p in model.parameters() if p.requires_grad]
+    opt = torch.optim.AdamW(params, lr=lr, weight_decay=0.0)
+    from transformers import get_cosine_schedule_with_warmup
+    sched = get_cosine_schedule_with_warmup(opt, int(0.05 * total), total)
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+
+    model.train()
+    stats, log, step, t0 = [], [], 0, time.time()
+    rng = random.Random(cfg.seed)
+    for ep in range(cfg.epochs):
+        order = list(range(len(data)))
+        rng.shuffle(order)
+        for s in range(0, len(order), cfg.batch_size):
+            idx = order[s:s + cfg.batch_size]
+            loss_sum = 0.0
+            for m in range(0, len(idx), cfg.micro_batch):
+                b = make_batch(proc, [data[i] for i in idx[m:m + cfg.micro_batch]], device)
+                with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
+                    loss = model(**b).loss / accum
+                scaler.scale(loss).backward()
+                loss_sum += loss.item()
+            scaler.unscale_(opt)
+            torch.nn.utils.clip_grad_norm_(params, 1.0)
+            scaler.step(opt)
+            scaler.update()
+            opt.zero_grad(set_to_none=True)
+            sched.step()
+            step += 1
+            log.append({"step": step, "loss": loss_sum})
+            if step % 10 == 0 or step == 1:
+                print(f"[{method}] step {step}/{total} loss {loss_sum:.4f} {time.time() - t0:.0f}s", flush=True)
+            if step in snap_at:
+                stats += snapshot_stats(targets, W0s, step)
+
+    os.makedirs(cfg.out_dir, exist_ok=True)
+    with open(os.path.join(cfg.out_dir, f"stats_{method}.json"), "w") as f:
+        json.dump({"config": asdict(cfg), "method": method, "steps": step, "seconds": time.time() - t0,
+                   "snap_at": snap_at, "stats": stats, "log": log}, f)
+    save_dir = os.path.join(cfg.out_dir, f"model_{method}")
+    if method == "full":
+        model.save_pretrained(save_dir, safe_serialization=True)
+    else:
+        model.save_pretrained(save_dir)
+    print(f"[{method}] done in {time.time() - t0:.0f}s; stats + weights in {cfg.out_dir}")
+    model.eval()
+    return model, proc
+
+
