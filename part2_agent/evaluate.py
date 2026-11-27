@@ -129,3 +129,16 @@ def score_example(ex, tr):
     return r
 
 
+FAILURE_CATEGORIES = [
+    "missed_call",        # tool needed but model answered directly (often hallucinated a value)
+    "wrong_format",       # tried to call a tool but output does not parse in the expected format
+    "wrong_tool",         # parsable call to the wrong tool (or to a tool that does not exist)
+    "wrong_argument",     # right tool, wrong arguments
+    "incomplete_chain",   # multi-step task: stopped after the first call
+    "extra_calls",        # repeated / unnecessary extra calls, often hitting the step limit
+    "ignored_result",     # calls correct but final answer does not use the tool result
+    "unnecessary_call",   # no tool needed but model called one
+    "wrong_answer",       # no tool needed, no call, but answer is wrong
+]
+
+
