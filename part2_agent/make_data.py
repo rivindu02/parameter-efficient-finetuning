@@ -316,3 +316,18 @@ TEST_MIX = {"weather": 12, "stock": 12, "calc": 12, "convert": 12, "days": 12,
             "weather_f": 10, "stock_shares": 10, "no_tool": 20}               # = 100
 
 
+def make_split(split, mix, seed):
+    rng = random.Random(seed)
+    recs, seen = [], set()
+    plan = [c for c, n in mix.items() for _ in range(n)]
+    rng.shuffle(plan)
+    for cat in plan:
+        for _ in range(50):  # avoid exact duplicate queries where possible
+            q, calls, checks, answer = build(rng, cat, split)
+            if q not in seen or cat == "no_tool":
+                break
+        seen.add(q)
+        recs.append(to_record(len(recs), split, cat, q, calls, checks, answer))
+    return recs
+
+
