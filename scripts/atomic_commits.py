@@ -54,3 +54,9 @@ def file_mode(path):
     return "100755" if os.access(path, os.X_OK) else "100644"
 
 
+def stage_blob(path, content: bytes):
+    sha = git("hash-object", "-w", "--stdin", input=content).strip()
+    sha = sha.decode() if isinstance(sha, bytes) else sha
+    git("update-index", "--add", "--cacheinfo", f"{file_mode(path)},{sha},{path}")
+
+
