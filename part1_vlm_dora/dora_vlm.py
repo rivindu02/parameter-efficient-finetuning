@@ -190,3 +190,16 @@ def effective_weight(mod):
     return mod.weight.float()
 
 
+@torch.no_grad()
+def snapshot_stats(targets, W0s, step):
+    rows = []
+    for name, mod in targets.items():
+        W, W0 = effective_weight(mod), W0s[name]
+        nW, nW0 = W.norm(dim=1), W0.norm(dim=1)
+        dM = (nW - nW0).abs().mean().item()
+        dD = (1 - torch.nn.functional.cosine_similarity(W, W0, dim=1)).mean().item()
+        rows.append({"step": step, "module": name, "tower": tower_of(name), "proj": proj_of(name),
+                     "layer": layer_of(name), "dM": dM, "dD": dD})
+    return rows
+
+
