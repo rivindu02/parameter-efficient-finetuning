@@ -242,9 +242,15 @@ def show_masking(cfg, n=2):
               f"{proc.tokenizer.decode(ids)!r}")
 
 
+def run_name(cfg: Config, method: str):
+    """File tag of a run: "dora" for all targets, "dora_vision" / "dora_text" for a single-tower ablation."""
+    return method if cfg.targets == "all" else f"{method}_{cfg.targets}"
+
+
 def train_method(cfg: Config, method: str):
-    """method in {"full", "lora", "dora"}. Saves stats_<method>.json + weights."""
+    """method in {"full", "lora", "dora"}. Saves stats_<run_name>.json + weights."""
     assert method in ("full", "lora", "dora")
+    name = run_name(cfg, method)
     set_seed(cfg.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     use_amp = device == "cuda"
