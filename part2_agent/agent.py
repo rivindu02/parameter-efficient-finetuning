@@ -96,3 +96,47 @@ def generate_batch(model, tok, conversations, max_new_tokens=200):
     return [clean(tok.decode(row, skip_special_tokens=False)) for row in new]
 
 
+def run_agent_batch(model, tok, queries, system_prompt=SYSTEM_PROMPT, max_steps=MAX_STEPS,
+                    batch_size=16, max_new_tokens=200):
+    """Run the agent loop on every query. Returns one trace dict per query."""
+    states = []
+    for q in queries:
+        states.append({
+            "query": q,
+            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": q}],
+            "steps": [],          # one entry per model turn
+            "final": None,        # plain-text final answer (None if never reached)
+            "stop": None,         # "answer" | "invalid_call" | "max_steps"
+            "done": False,
+        })
+    for _ in range(max_steps):
+        active = [s for s in states if not s["done"]]
+        if not active:
+            break
+        for i in range(0, len(active), batch_size):
+            chunk = active[i:i + batch_size]
+            outs = generate_batch(model, tok, [s["messages"] for s in chunk], max_new_tokens)
+            for s, text in zip(chunk, outs):
+                attempted, valid, calls = parse_tool_calls(text)
+                step = {"raw": text, "attempted": attempted, "valid": valid, "calls": calls, "results": []}
+                s["steps"].append(step)
+                if not attempted:
+                    s["final"], s["stop"], s["done"] = text, "answer", True
+                    s["messages"].append({"role": "assistant", "content": text})
+                    continue
+                if not valid:
+                    s["stop"], s["done"] = "invalid_call", True
+                    continue
+                s["messages"].append({"role": "assistant", "content": "", "tool_calls": [
+                    {"type": "function", "function": {"name": c["name"], "arguments": c["arguments"]}}
+                    for c in calls]})
+                for c in calls:
+                    r = execute_tool(c["name"], c["arguments"])
+                    step["results"].append(r)
+                    s["messages"].append({"role": "tool", "name": c["name"], "content": tool_result_str(r)})
+    for s in states:
+        if not s["done"]:
+            s["stop"], s["done"] = "max_steps", True
+    return [{k: v for k, v in s.items() if k != "done"} for s in states]
+
+
