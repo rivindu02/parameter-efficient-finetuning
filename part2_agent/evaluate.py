@@ -203,3 +203,16 @@ def compare(rows_base, rows_lora):
     return {k: dict(v) for k, v in out.items()}
 
 
+def print_table(summaries):
+    keys = ["call_validity", "call_accuracy", "abstention", "task_success", "task_success_tool", "task_success_multi"]
+    names = list(summaries)
+    print(f"{'metric':<22}" + "".join(f"{n:>12}" for n in names))
+    for k in keys:
+        print(f"{k:<22}" + "".join(f"{summaries[n][k]:>11.1f}%" for n in names))
+    print()
+    cats = sorted({c for s in summaries.values() for c in s["failures"]}, key=FAILURE_CATEGORIES.index)
+    print(f"{'failure category':<22}" + "".join(f"{n:>12}" for n in names))
+    for c in cats:
+        print(f"{c:<22}" + "".join(f"{summaries[n]['failures'].get(c, 0):>12}" for n in names))
+
+
