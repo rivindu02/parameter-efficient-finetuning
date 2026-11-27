@@ -169,3 +169,19 @@ def categorize(ex, tr, pcalls):
     return "ignored_result"
 
 
+def summarize(rows):
+    tool = [r for r in rows if r["needs_tool"]]
+    notool = [r for r in rows if not r["needs_tool"]]
+    pct = lambda xs, k: 100.0 * sum(x[k] for x in xs) / max(len(xs), 1)  # noqa: E731
+    return {
+        "n_total": len(rows), "n_tool": len(tool), "n_no_tool": len(notool),
+        "call_validity": pct(tool, "valid"),
+        "call_accuracy": pct(tool, "call_acc"),
+        "abstention": pct(notool, "abstain"),
+        "task_success": pct(rows, "success"),
+        "task_success_tool": pct(tool, "success"),
+        "task_success_multi": pct([r for r in tool if r["category"] in ("weather_f", "stock_shares")], "success"),
+        "failures": dict(Counter(r["failure"] for r in rows if r["failure"])),
+    }
+
+
