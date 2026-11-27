@@ -33,3 +33,30 @@ MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct"
 PROMPT_SUFFIX = "\nAnswer with a single word or short phrase."
 
 
+@dataclass
+class Config:
+    model_id: str = MODEL_ID
+    dataset: str = "HuggingFaceM4/DocumentVQA"
+    train_split: str = "train"
+    eval_split: str = "validation"
+    n_train: int = 2000
+    n_eval: int = 300
+    data_dir: str = "data_docvqa"
+    out_dir: str = "outputs"
+    image_longest_edge: int = 1024     # SmolVLM splits into 512px tiles: <= 2x2 tiles + 1 global
+    seed: int = 42
+    epochs: int = 1
+    batch_size: int = 8
+    micro_batch: int = 4
+    rank: int = 8
+    alpha: int = 16
+    dropout: float = 0.05
+    lr_adapter: float = 1e-4           # LoRA and DoRA
+    lr_full: float = 1e-5              # full finetuning
+    targets: str = "all"               # "all" | "vision" | "text"
+    n_snapshots: int = 8               # checkpoints at which dM/dD are recorded
+    max_new_tokens: int = 24
+    eval_batch: int = 16
+    extra: dict = field(default_factory=dict)
+
+
