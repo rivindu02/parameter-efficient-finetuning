@@ -105,3 +105,8 @@ def load_split(cfg, split):
         return [json.loads(l) for l in f]
 
 
+def _load_image(path):
+    from PIL import Image
+    return Image.open(path).convert("RGB")
+
+
