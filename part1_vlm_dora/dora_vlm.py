@@ -423,3 +423,21 @@ def correlation_table(stats, groups=("tower", "proj")):
     return out
 
 
+def analyze(out_dir, methods=("full", "lora", "dora"), proj_filter=("q_proj", "v_proj")):
+    """Print correlation tables; return {method: table}. proj_filter=None uses all projections."""
+    res = {}
+    for m in methods:
+        p = os.path.join(out_dir, f"stats_{m}.json")
+        if not os.path.exists(p):
+            continue
+        stats = json.load(open(p))["stats"]
+        if proj_filter:
+            stats = [r for r in stats if r["proj"] in proj_filter or r["tower"] == "connector"]
+        res[m] = correlation_table(stats)
+        print(f"\n== {m} ==  {'group':<22}{'n':>5}{'r_pooled':>10}{'rho_pooled':>12}{'r_within':>10}")
+        for r in res[m]:
+            print(f"{'':>10}{r['group']:<22}{r['n']:>5}{r['pearson_pooled']:>10.3f}"
+                  f"{r['spearman_pooled']:>12.3f}{r['pearson_within_ckpt']:>10.3f}")
+    return res
+
+
