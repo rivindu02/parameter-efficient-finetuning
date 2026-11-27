@@ -40,3 +40,16 @@ def encode(tok, messages, max_len):
     return {"input_ids": ids, "labels": labels}
 
 
+def collate(batch, pad_id):
+    L = max(len(x["input_ids"]) for x in batch)
+    ids = torch.full((len(batch), L), pad_id, dtype=torch.long)
+    lab = torch.full((len(batch), L), -100, dtype=torch.long)
+    att = torch.zeros((len(batch), L), dtype=torch.long)
+    for i, x in enumerate(batch):  # right padding for training
+        n = len(x["input_ids"])
+        ids[i, :n] = torch.tensor(x["input_ids"])
+        lab[i, :n] = torch.tensor(x["labels"])
+        att[i, :n] = 1
+    return {"input_ids": ids, "labels": lab, "attention_mask": att}
+
+
