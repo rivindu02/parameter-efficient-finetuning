@@ -57,3 +57,7 @@ def args_match(name, pred, gold):
     return pred == gold
 
 
+def pred_calls(trace):
+    return [c for st in trace["steps"] if st["valid"] for c in st["calls"]]
+
+
