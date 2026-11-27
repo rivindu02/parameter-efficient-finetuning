@@ -176,3 +176,17 @@ def find_targets(model, regex):
     return out
 
 
+@torch.no_grad()
+def effective_weight(mod):
+    if hasattr(mod, "lora_A") and len(mod.active_adapters) > 0:
+        a = mod.active_adapters[0]
+        W0 = mod.base_layer.weight.float()
+        A, B = mod.lora_A[a].weight.float(), mod.lora_B[a].weight.float()
+        W = W0 + mod.scaling[a] * (B @ A)
+        if getattr(mod, "use_dora", {}).get(a, False):
+            m = mod.lora_magnitude_vector[a].weight.float().view(-1, 1)
+            W = m * W / W.norm(dim=1, keepdim=True)
+        return W
+    return mod.weight.float()
+
+
