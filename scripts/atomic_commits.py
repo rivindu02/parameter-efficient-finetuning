@@ -38,3 +38,8 @@ def git(*args, input=None, check=True):
     return r.stdout
 
 
+def scope_of(path):
+    parts = path.split("/")
+    return parts[0] if len(parts) > 1 else "repo"
+
+
