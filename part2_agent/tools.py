@@ -130,3 +130,11 @@ def convert_units(value, from_unit, to_unit):
     return {"value": value, "from_unit": f, "to_unit": t, "result": round(out, 2)}
 
 
+def get_weather(city):
+    key = str(city).strip().lower()
+    if key not in WEATHER:
+        return {"error": f"no weather data for '{city}'"}
+    temp, cond = WEATHER[key]
+    return {"city": key.title(), "temperature_c": temp, "condition": cond}
+
+
