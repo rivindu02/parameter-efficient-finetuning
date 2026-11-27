@@ -148,3 +148,8 @@ def tower_of(name):
     return "text"
 
 
+def proj_of(name):
+    leaf = name.split(".")[-1]
+    return {"out_proj": "o_proj"}.get(leaf, leaf)
+
+
