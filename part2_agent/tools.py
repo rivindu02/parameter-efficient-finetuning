@@ -99,3 +99,11 @@ def eval_expression(expression):
     return _safe_eval(ast.parse(expr, mode="eval"))
 
 
+def calculator(expression):
+    try:
+        value = eval_expression(expression)
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"could not evaluate expression: {e}"}
+    return {"expression": str(expression), "result": round(float(value), 4)}
+
+
