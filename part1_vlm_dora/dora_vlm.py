@@ -378,3 +378,17 @@ def evaluate_anls(cfg, model, proc, name):
     return res
 
 
+# ----------------------------------------------------------------------------
+# Analysis
+# ----------------------------------------------------------------------------
+def _pearson(x, y):
+    n = len(x)
+    if n < 3:
+        return float("nan")
+    mx, my = sum(x) / n, sum(y) / n
+    sxy = sum((a - mx) * (b - my) for a, b in zip(x, y))
+    sxx = sum((a - mx) ** 2 for a in x)
+    syy = sum((b - my) ** 2 for b in y)
+    return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else float("nan")
+
+
