@@ -216,3 +216,8 @@ def print_table(summaries):
         print(f"{c:<22}" + "".join(f"{summaries[n]['failures'].get(c, 0):>12}" for n in names))
 
 
+def load_jsonl(path):
+    with open(path) as f:
+        return [json.loads(line) for line in f]
+
+
