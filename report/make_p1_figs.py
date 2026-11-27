@@ -25,3 +25,8 @@ def pearson(x, y):
     return sum((a - mx) * (b - my) for a, b in zip(x, y)) / (sx * sy) if sx and sy else float("nan")
 
 
+def stats(run):
+    p = os.path.join(RES, f"stats_{run}.json")
+    return json.load(open(p))["stats"] if os.path.exists(p) else None
+
+
