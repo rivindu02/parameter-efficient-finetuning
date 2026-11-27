@@ -54,3 +54,22 @@ def save(cells, path, keep_outputs=False):
     print("wrote", path)
 
 
+SETUP = """
+!nvidia-smi --query-gpu=name,memory.total --format=csv
+!pip -q install -U "transformers>=4.46" peft accelerate datasets
+import os, sys
+USE_DRIVE = True   # checkpoints + results go to Google Drive so a disconnect is not fatal
+if USE_DRIVE:
+    from google.colab import drive
+    drive.mount('/content/drive')
+    OUT = '/content/drive/MyDrive/EN4554/{part}'
+else:
+    OUT = '/content/{part}_outputs'
+os.makedirs(OUT, exist_ok=True)
+os.makedirs('/content/{part}', exist_ok=True)
+%cd /content/{part}
+sys.path.insert(0, '/content/{part}')
+SEED = 42
+print('outputs ->', OUT)
+"""
+
