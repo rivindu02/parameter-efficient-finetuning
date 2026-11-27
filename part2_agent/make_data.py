@@ -331,3 +331,17 @@ def make_split(split, mix, seed):
     return recs
 
 
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "data"))
+    ap.add_argument("--seed", type=int, default=SEED)
+    args = ap.parse_args()
+    os.makedirs(args.out, exist_ok=True)
+    for split, mix, s in [("train", TRAIN_MIX, args.seed), ("test", TEST_MIX, args.seed + 1)]:
+        recs = make_split(split, mix, s)
+        with open(os.path.join(args.out, f"{split}.jsonl"), "w") as f:
+            for r in recs:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        print(f"{split}: {len(recs)} examples, {sum(not r['gold_calls'] for r in recs)} need no tool")
+
+
