@@ -75,3 +75,9 @@ def parse_tool_calls(text):
     return True, True, calls
 
 
+def clean(text):
+    for t in _STRIP_TOKENS:
+        text = text.replace(t, "")
+    return text.strip()
+
+
