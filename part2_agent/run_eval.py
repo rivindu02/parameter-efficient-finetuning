@@ -31,3 +31,14 @@ def run(name, test_path, out_dir, adapter=None, batch_size=16, limit=None, syste
     return traces, rows, summary
 
 
+if __name__ == "__main__":
+    here = os.path.dirname(os.path.abspath(__file__))
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--name", required=True)
+    ap.add_argument("--adapter", default=None)
+    ap.add_argument("--test", default=os.path.join(here, "data", "test.jsonl"))
+    ap.add_argument("--out", default=os.path.join(here, "outputs"))
+    ap.add_argument("--batch_size", type=int, default=16)
+    ap.add_argument("--limit", type=int, default=None)
+    a = ap.parse_args()
+    run(a.name, a.test, a.out, a.adapter, a.batch_size, a.limit)
