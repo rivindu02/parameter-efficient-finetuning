@@ -15,3 +15,7 @@ def md(src):
     return {"cell_type": "markdown", "metadata": {}, "source": src.strip("\n")}
 
 
+def code(src):
+    return {"cell_type": "code", "metadata": {}, "execution_count": None, "outputs": [], "source": src.strip("\n")}
+
+
