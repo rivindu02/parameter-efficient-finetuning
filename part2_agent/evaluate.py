@@ -71,3 +71,8 @@ def hallucinated_tool(st):
     return bool(st["attempted"] and not st["valid"] and any(c.get("name") not in TOOLS for c in st["calls"]))
 
 
+def attempted_calls(trace):
+    """Every parsed call in order, including calls to tools that do not exist."""
+    return [c for st in trace["steps"] if st["valid"] or hallucinated_tool(st) for c in st["calls"]]
+
+
