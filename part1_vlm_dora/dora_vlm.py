@@ -158,3 +158,10 @@ def layer_of(name):
     return int(m.group(1)) if m else -1
 
 
+# ----------------------------------------------------------------------------
+# Magnitude / direction tracking
+# ----------------------------------------------------------------------------
+def _clean_name(n):
+    return n.replace("base_model.model.", "")
+
+
