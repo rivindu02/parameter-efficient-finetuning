@@ -66,3 +66,37 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 
+# ----------------------------------------------------------------------------
+# Data
+# ----------------------------------------------------------------------------
+def prepare_data(cfg: Config):
+    """Stream a subset of DocVQA, resize images, cache them as JPEG + jsonl. Idempotent."""
+    from datasets import load_dataset
+    for split, n in [(cfg.train_split, cfg.n_train), (cfg.eval_split, cfg.n_eval)]:
+        meta_path = os.path.join(cfg.data_dir, f"{split}.jsonl")
+        if os.path.exists(meta_path) and sum(1 for _ in open(meta_path)) >= n:
+            print(f"{split}: cached at {meta_path}")
+            continue
+        img_dir = os.path.join(cfg.data_dir, split)
+        os.makedirs(img_dir, exist_ok=True)
+        # shuffle buffer scales with the subset size, so tiny runs do not download thousands of images
+        ds = load_dataset(cfg.dataset, split=split, streaming=True).shuffle(
+            seed=cfg.seed, buffer_size=min(2000, 4 * n))
+        recs = []
+        for ex in ds:
+            answers = [a for a in (ex.get("answers") or []) if a]
+            if not answers:
+                continue
+            img = ex["image"].convert("RGB")
+            img.thumbnail((cfg.image_longest_edge, cfg.image_longest_edge))
+            path = os.path.join(img_dir, f"{len(recs):05d}.jpg")
+            img.save(path, quality=90)
+            recs.append({"image": path, "question": ex["question"], "answers": answers})
+            if len(recs) >= n:
+                break
+        with open(meta_path, "w") as f:
+            for r in recs:
+                f.write(json.dumps(r) + "\n")
+        print(f"{split}: wrote {len(recs)} examples to {meta_path}")
+
+
