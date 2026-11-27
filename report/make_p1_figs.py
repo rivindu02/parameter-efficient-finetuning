@@ -111,3 +111,7 @@ def bootstrap():
         print(f"  {a:>11} - {b:<11} {100 * sum(d) / n:+6.2f}  [{100 * bs[125]:+.2f}, {100 * bs[4875]:+.2f}]")
 
 
+if __name__ == "__main__":
+    figure()
+    tables()
+    bootstrap()
