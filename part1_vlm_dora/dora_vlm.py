@@ -54,6 +54,7 @@ class Config:
     lr_adapter: float = 1e-4           # LoRA and DoRA
     lr_full: float = 1e-5              # full finetuning
     targets: str = "all"               # "all" | "vision" | "text"
+    allow_cpu: bool = False            # training on CPU takes ~15 min per step: refuse unless asked
     n_snapshots: int = 8               # checkpoints at which dM/dD are recorded
     max_new_tokens: int = 24
     eval_batch: int = 16
