@@ -31,3 +31,10 @@ ORDER = [r"^\.gitignore$", r"^README\.md$", r"^requirements", r"tools\.py$", r"m
          r"\.md$", r"\.pdf$"]
 
 
+def git(*args, input=None, check=True):
+    r = subprocess.run(["git", *args], input=input, capture_output=True, text=isinstance(input, str) or input is None)
+    if check and r.returncode != 0:
+        sys.exit(f"git {' '.join(args)} failed:\n{r.stderr}")
+    return r.stdout
+
+
