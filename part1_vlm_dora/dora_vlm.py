@@ -140,3 +140,11 @@ def target_regex(targets):
     return "|".join(f"(?:{p})" for p in parts)
 
 
+def tower_of(name):
+    if "vision_model" in name:
+        return "vision"
+    if "connector" in name:
+        return "connector"
+    return "text"
+
+
