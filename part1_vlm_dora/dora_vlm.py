@@ -400,16 +400,13 @@ def evaluate_anls(cfg, model, proc, name):
             out = model.generate(**enc, max_new_tokens=cfg.max_new_tokens, do_sample=False)
         dec = proc.batch_decode(out[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
         preds += [d.strip() for d in dec]
-    scores = [anls(p, e["answers"]) for p, e in zip(preds, data)]
-    exact = [float(any(" ".join(p.lower().split()) == " ".join(a.lower().split()) for a in e["answers"]))
-             for p, e in zip(preds, data)]
-    res = {"name": name, "n": len(data), "anls": 100 * sum(scores) / len(scores),
-           "exact_match": 100 * sum(exact) / len(exact),
-           "samples": [{"q": e["question"], "pred": p, "answers": e["answers"][:3]} for p, e in zip(preds[:30], data)]}
+    res = {"name": name, "n": len(data), **score_predictions(preds, data),
+           "predictions": [{"q": e["question"], "pred": p, "answers": e["answers"]} for p, e in zip(preds, data)]}
     os.makedirs(cfg.out_dir, exist_ok=True)
     with open(os.path.join(cfg.out_dir, f"eval_{name}.json"), "w") as f:
         json.dump(res, f, indent=1)
-    print(f"[{name}] ANLS {res['anls']:.2f}  EM {res['exact_match']:.2f}  (n={len(data)})")
+    print(f"[{name}] ANLS {res['anls']:.2f}  EM {res['exact_match']:.2f}  "
+          f"(ignoring trailing punctuation: ANLS {res['anls_norm']:.2f}  EM {res['exact_match_norm']:.2f})  n={len(data)}")
     return res
 
 
