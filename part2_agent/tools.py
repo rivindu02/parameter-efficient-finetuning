@@ -63,3 +63,19 @@ _LINEAR = {  # (from, to) -> factor
 }
 
 
+def canon_unit(u):
+    if u is None:
+        return None
+    return _ALIAS_TO_UNIT.get(str(u).strip().lower())
+
+
+# ----------------------------------------------------------------------------
+# Tools
+# ----------------------------------------------------------------------------
+_OPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+    ast.Div: operator.truediv, ast.Pow: operator.pow, ast.Mod: operator.mod,
+    ast.USub: operator.neg, ast.UAdd: operator.pos,
+}
+
+
