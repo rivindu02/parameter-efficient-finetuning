@@ -397,3 +397,29 @@ def _spearman(x, y):
     return _pearson(rank(x), rank(y))
 
 
+def correlation_table(stats, groups=("tower", "proj")):
+    """Correlation of dM vs dD.
+
+    pooled:       all (layer, checkpoint) points of a group together (as in DoRA Fig. 2)
+    within_ckpt:  mean over checkpoints of the across-layer correlation, which removes
+                  the trivial "both grow with training time" trend.
+    """
+    from collections import defaultdict
+    by = defaultdict(list)
+    for r in stats:
+        by["ALL"].append(r)
+        by[f"{r[groups[0]]}/ALL"].append(r)
+        by["/".join(str(r[g]) for g in groups)].append(r)
+    out = []
+    for key, rows in sorted(by.items()):
+        x, y = [r["dD"] for r in rows], [r["dM"] for r in rows]
+        steps = sorted({r["step"] for r in rows})
+        within = [_pearson([r["dD"] for r in rows if r["step"] == s], [r["dM"] for r in rows if r["step"] == s])
+                  for s in steps]
+        within = [w for w in within if not math.isnan(w)]
+        out.append({"group": key, "n": len(rows),
+                    "pearson_pooled": _pearson(x, y), "spearman_pooled": _spearman(x, y),
+                    "pearson_within_ckpt": sum(within) / len(within) if within else float("nan")})
+    return out
+
+
