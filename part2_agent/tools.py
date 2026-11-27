@@ -222,3 +222,5 @@ def execute_tool(name, arguments):
         return {"error": f"bad arguments: {e}"}
 
 
+def tool_result_str(result):
+    return json.dumps(result, ensure_ascii=False)
