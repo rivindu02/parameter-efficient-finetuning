@@ -126,3 +126,111 @@ def runner(cells, part, modules):
     return out
 
 
+# ---------------------------------------------------------------------------
+# Part 2
+# ---------------------------------------------------------------------------
+p2 = [
+    md("""
+# Part 2 — LLM agent: tool calling with LoRA
+
+Model **Qwen2.5-0.5B-Instruct** · 5 tools with made-up data · template dataset (800 train / 100 test, disjoint phrasings)
+· baseline vs LoRA (loss on assistant turns only) · metrics: call validity, call accuracy, abstention, task success · failure analysis.
+
+Runtime: *Runtime → Change runtime type → T4 GPU*. Seed 42 everywhere. Whole notebook ≈ 20–30 min on a T4.
+"""),
+    code(SETUP.replace("{part}", "part2_agent")),
+    md("## 1. Source modules (tools, data generator, agent loop, evaluation, training)"),
+    *[writefile("part2_agent", f) for f in ["tools.py", "make_data.py", "agent.py", "evaluate.py", "train.py", "run_eval.py"]],
+    md("## 2. Data\nTemplates for train and test never overlap; the date task uses ISO dates in train and written dates (`March 1, 2024`) in test."),
+    code("""
+!python make_data.py --out data --seed 42
+from evaluate import load_jsonl
+from collections import Counter
+train, test = load_jsonl('data/train.jsonl'), load_jsonl('data/test.jsonl')
+print('train', Counter(r['category'] for r in train))
+print('test ', Counter(r['category'] for r in test))
+for r in test[:5]:
+    print('-', r['query'], '=>', [c['name'] for c in r['gold_calls']] or 'NO TOOL')
+"""),
+    md("## 3. The agent loop on the untouched model (demo)"),
+    code("""
+import torch, json
+from agent import load_model, chat, SYSTEM_PROMPT, MODEL_ID
+from tools import TOOL_SCHEMAS
+model, tok = load_model(MODEL_ID)
+print(tok.apply_chat_template([{'role':'system','content':SYSTEM_PROMPT},{'role':'user','content':'weather in Oslo?'}],
+                              tools=TOOL_SCHEMAS, add_generation_prompt=True, tokenize=False)[-600:])
+for q in ['How much would 12 shares of ZORB cost?', 'What is the capital of Japan?',
+          'Count the days from March 3, 2024 to May 1, 2024.']:
+    print('='*80); print('Q:', q); chat(model, tok, q)
+del model; torch.cuda.empty_cache()
+"""),
+    md("## 4. Baseline evaluation"),
+    code("""
+from run_eval import run
+base_traces, base_rows, base_sum = run('base', 'data/test.jsonl', OUT, adapter=None, batch_size=16)
+"""),
+    md("## 5. LoRA finetuning (loss on assistant turns only)\nr=16, alpha=32, dropout 0.05, all linear layers, lr 2e-4 cosine, 2 epochs, batch 8, fp16 autocast."),
+    code("""
+from train import train, encode
+from transformers import AutoTokenizer
+import os
+ADAPTER = os.path.join(OUT, 'lora_adapter')
+if os.path.exists(os.path.join(ADAPTER, 'adapter_config.json')):
+    print('adapter already trained, skipping (delete the folder to retrain)')
+else:
+    train('data/train.jsonl', ADAPTER, epochs=2, lr=2e-4, batch_size=8, micro_batch=4, r=16, alpha=32, seed=SEED)
+"""),
+    code("""
+import json, matplotlib.pyplot as plt
+log = json.load(open(os.path.join(ADAPTER, 'train_log.json')))
+print(log['config'])
+plt.figure(figsize=(5,3)); plt.plot([l['step'] for l in log['log']], [l['loss'] for l in log['log']])
+plt.xlabel('step'); plt.ylabel('train loss (assistant tokens)'); plt.tight_layout()
+plt.savefig(os.path.join(OUT, 'train_loss.png'), dpi=150); plt.show()
+"""),
+    md("## 6. LoRA evaluation (same test set, same system prompt)"),
+    code("""
+lora_traces, lora_rows, lora_sum = run('lora', 'data/test.jsonl', OUT, adapter=ADAPTER, batch_size=16)
+"""),
+    md("## 7. Baseline vs LoRA"),
+    code("""
+from evaluate import print_table, compare
+print_table({'base': base_sum, 'lora': lora_sum})
+trans = compare(base_rows, lora_rows)
+print(json.dumps(trans, indent=1))
+json.dump({'base': base_sum, 'lora': lora_sum, 'transitions': trans}, open(os.path.join(OUT, 'results.json'), 'w'), indent=1)
+"""),
+    md("## 8. Failure analysis\nAll failures of each model, with the raw model turns. Categories are assigned automatically and then checked by hand."),
+    code("""
+def show_failures(name, traces, rows, k=15):
+    fails = [(ex, tr, r) for ex, tr, r in zip(test, traces, rows) if r['failure']]
+    print(f'##### {name}: {len(fails)} failures (showing {min(k, len(fails))})')
+    for ex, tr, r in fails[:k]:
+        print(f"\\n[{r['failure']}] {ex['id']} ({ex['category']}) Q: {ex['query']}")
+        print('   gold calls:', [(c['name'], c['arguments']) for c in ex['gold_calls']] or 'none')
+        for i, st in enumerate(tr['steps']):
+            print(f'   turn {i}:', st['raw'][:300].replace('\\n', ' '))
+        print('   final:', (tr['final'] or '')[:200], '| stop:', tr['stop'])
+show_failures('BASE', base_traces, base_rows)
+"""),
+    code("show_failures('LORA', lora_traces, lora_rows)"),
+    md("""
+### Notes for the write-up
+* Which categories did LoRA fix / leave / introduce? → see `transitions` above.
+* Could a better prompt alone have been enough? Try the cell below: a stronger system prompt with a format example, on the base model.
+"""),
+    code("""
+STRONG_PROMPT = SYSTEM_PROMPT + (
+    ' To call a tool, reply ONLY with <tool_call>{"name": <tool>, "arguments": {...}}</tool_call>. '
+    'Never guess weather, stock prices, conversions, date differences or arithmetic: use the tool. '
+    'Call one tool at a time; when you have the result, give the final answer with the number from the result. '
+    'Dates must be YYYY-MM-DD. For questions that need no tool, answer directly without any tool call.')
+pt_traces, pt_rows, pt_sum = run('base_prompt', 'data/test.jsonl', OUT, adapter=None, batch_size=16,
+                                 system_prompt=STRONG_PROMPT)
+print_table({'base': base_sum, 'base+prompt': pt_sum, 'lora': lora_sum})
+json.dump({'base': base_sum, 'base_strong_prompt': pt_sum, 'lora': lora_sum, 'transitions': trans},
+          open(os.path.join(OUT, 'results.json'), 'w'), indent=1)
+"""),
+]
+
