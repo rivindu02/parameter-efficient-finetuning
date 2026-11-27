@@ -69,3 +69,27 @@ def figure():
     print("wrote", out)
 
 
+def tables():
+    print("\nr across layers at the final checkpoint (n = layers)")
+    for tower in ["vision", "text"]:
+        for proj in ["q_proj", "k_proj", "v_proj", "o_proj"]:
+            cells = []
+            for m, _ in METHODS:
+                rows = final_rows(stats(m), tower, proj)
+                cells.append(f"{pearson([r['dD'] for r in rows], [r['dM'] for r in rows]):+.2f}")
+            print(f"  {tower:<7}{proj:<7} n={len(rows):<3}" + "  ".join(cells))
+    print("\nmean dM, dD per tower at the final checkpoint")
+    for run in ["full", "lora", "dora", "dora_vision", "dora_text"]:
+        st = stats(run)
+        if st is None:
+            continue
+        last = max(r["step"] for r in st)
+        parts = []
+        for t in ["vision", "connector", "text"]:
+            v = [r for r in st if r["step"] == last and r["tower"] == t]
+            if v:
+                dm, dd = sum(r["dM"] for r in v) / len(v), sum(r["dD"] for r in v) / len(v)
+                parts.append(f"{t}: dM={dm:.2e} dD={dd:.2e}")
+        print(f"  {run:<12}" + "  ".join(parts))
+
+
