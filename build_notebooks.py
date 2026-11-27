@@ -297,9 +297,10 @@ rows = []
 for n in ['zeroshot', 'lora', 'dora', 'full']:
     p = os.path.join(OUT, f'eval_{n}.json')
     if os.path.exists(p):
-        r = json.load(open(p)); rows.append((n, r['anls'], r['exact_match']))
-print(f"{'model':<10}{'ANLS':>8}{'EM':>8}")
-for n, a, e in rows: print(f'{n:<10}{a:>8.2f}{e:>8.2f}')
+        r = json.load(open(p))
+        rows.append((n, r['anls'], r['exact_match'], r.get('anls_norm', float('nan')), r.get('exact_match_norm', float('nan'))))
+print(f"{'model':<10}{'ANLS':>8}{'EM':>8}{'ANLS*':>8}{'EM*':>8}   (* ignoring trailing punctuation)")
+for n, a, e, a2, e2 in rows: print(f'{n:<10}{a:>8.2f}{e:>8.2f}{a2:>8.2f}{e2:>8.2f}')
 """),
     md("""
 ## 5. Claim test: ΔM vs ΔD correlation
