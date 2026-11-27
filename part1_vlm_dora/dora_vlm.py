@@ -339,3 +339,13 @@ def _levenshtein(a, b):
     return prev[-1]
 
 
+def anls(pred, answers, tau=0.5):
+    p = " ".join(pred.strip().lower().split())
+    best = 0.0
+    for a in answers:
+        a = " ".join(a.strip().lower().split())
+        nl = _levenshtein(p, a) / max(len(p), len(a), 1)
+        best = max(best, 1 - nl if nl < tau else 0.0)
+    return best
+
+
