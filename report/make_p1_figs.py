@@ -30,3 +30,9 @@ def stats(run):
     return json.load(open(p))["stats"] if os.path.exists(p) else None
 
 
+def final_rows(st, tower, proj):
+    last = max(r["step"] for r in st)
+    return sorted((r for r in st if r["step"] == last and r["tower"] == tower and r["proj"] == proj),
+                  key=lambda r: r["layer"])
+
+
