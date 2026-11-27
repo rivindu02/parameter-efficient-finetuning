@@ -173,3 +173,9 @@ def fmt_num(x):
     return str(int(x)) if x == int(x) else f"{x:.2f}".rstrip("0").rstrip(".")
 
 
+def random_date(rng):
+    import datetime as dt
+    d = dt.date(2024, 1, 1) + dt.timedelta(days=rng.randint(0, 900))
+    return d
+
+
