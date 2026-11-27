@@ -95,3 +95,16 @@ def calls_match(pred, gold):
         for p, g in zip(pred, gold))
 
 
+def answer_ok(final, checks):
+    if final is None:
+        return False
+    low = final.lower()
+    nums = [_num(m) for m in _NUM_RE.findall(final)]
+    for c in checks:
+        if c["type"] == "str" and not str_ok(c["value"], low):
+            return False
+        if c["type"] == "num" and not any(_close(n, float(c["value"])) for n in nums):
+            return False
+    return True
+
+
