@@ -53,3 +53,11 @@ def collate(batch, pad_id):
     return {"input_ids": ids, "labels": lab, "attention_mask": att}
 
 
+def show_masking(tok, example):
+    """Print which part of one example carries loss (sanity check)."""
+    ids, lab = example["input_ids"], example["labels"]
+    kept = tok.decode([t for t, l in zip(ids, lab) if l != -100])
+    print(f"tokens: {len(ids)}, supervised: {sum(l != -100 for l in lab)}")
+    print("supervised text:\n" + kept)
+
+
