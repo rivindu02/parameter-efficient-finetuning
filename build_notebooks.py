@@ -273,17 +273,23 @@ dv.show_masking(cfg)   # only the answer tokens should be supervised
 """),
     md("## 2. Zero-shot baseline"),
     code("""
-if not os.path.exists(os.path.join(OUT, 'eval_zeroshot.json')):
+if dv.needs_eval(cfg, 'zeroshot'):
     model, proc = dv.load_model_and_processor(cfg)
     dv.evaluate_anls(cfg, model.to('cuda'), proc, 'zeroshot')
     del model; gc.collect(); torch.cuda.empty_cache()
 """),
     md("## 3. Training runs (one cell each, skipped if results already on Drive)"),
     *[code(f"""
-if not os.path.exists(os.path.join(OUT, 'eval_{m}.json')):
+if not os.path.exists(os.path.join(cfg.out_dir, 'stats_{m}.json')):      # train (+ evaluate)
     model, proc = dv.train_method(cfg, '{m}')
     dv.evaluate_anls(cfg, model, proc, '{m}')
     del model; gc.collect(); torch.cuda.empty_cache()
+elif dv.needs_eval(cfg, '{m}'):                                         # already trained: re-evaluate only
+    model, proc = dv.load_trained(cfg, '{m}')
+    dv.evaluate_anls(cfg, model, proc, '{m}')
+    del model; gc.collect(); torch.cuda.empty_cache()
+else:
+    print('{m}: trained and evaluated already')
 """) for m in ["lora", "dora", "full"]],
     md("## 4. Accuracy: zero-shot vs adapted"),
     code("""
