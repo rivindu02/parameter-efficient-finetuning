@@ -254,6 +254,9 @@ def train_method(cfg: Config, method: str):
     name = run_name(cfg, method)
     set_seed(cfg.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cpu" and not cfg.allow_cpu:
+        raise RuntimeError("No GPU found. In Colab: Runtime > Change runtime type > T4 GPU "
+                           "(or set Config(allow_cpu=True) for a deliberate CPU run).")
     use_amp = device == "cuda"
     model, proc = load_model_and_processor(cfg)
     regex = target_regex(cfg.targets)
