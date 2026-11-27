@@ -31,3 +31,7 @@ def _num(x):
         return None
 
 
+def _close(a, b, rel=2e-3, abs_=0.5):
+    return a is not None and b is not None and math.isclose(a, b, rel_tol=rel, abs_tol=abs_)
+
+
