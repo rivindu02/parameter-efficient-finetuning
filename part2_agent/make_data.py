@@ -345,3 +345,5 @@ def main():
         print(f"{split}: {len(recs)} examples, {sum(not r['gold_calls'] for r in recs)} need no tool")
 
 
+if __name__ == "__main__":
+    main()
