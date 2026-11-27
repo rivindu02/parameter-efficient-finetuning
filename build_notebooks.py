@@ -73,3 +73,40 @@ SEED = 42
 print('outputs ->', OUT)
 """
 
+GIT_SETUP = """
+# ---- config: code comes from GitHub, results go to Google Drive ----
+REPO_URL = 'https://github.com/rivindu02/parameter-efficient-finetuning.git'   # <- your repo
+BRANCH = 'main'
+!nvidia-smi --query-gpu=name,memory.total --format=csv
+!pip -q install -U "transformers>=4.46" peft accelerate datasets
+import os, sys, subprocess
+from google.colab import drive
+drive.mount('/content/drive')
+OUT = '/content/drive/MyDrive/EN4554/{part}'
+os.makedirs(OUT, exist_ok=True)
+url = REPO_URL
+try:  # private repo: add a Colab secret GH_TOKEN (read-only fine-grained token) with notebook access
+    from google.colab import userdata
+    url = REPO_URL.replace('https://', f"https://{userdata.get('GH_TOKEN')}@")
+except Exception:
+    pass
+if not os.path.exists('/content/repo/.git'):
+    subprocess.run(['git', 'clone', '-q', '-b', BRANCH, url, '/content/repo'], check=True)
+else:
+    subprocess.run(['git', '-C', '/content/repo', 'pull', '-q'], check=True)
+print(subprocess.run(['git', '-C', '/content/repo', 'log', '-1', '--oneline'], capture_output=True, text=True).stdout)
+%cd /content/repo/{part}
+sys.path.insert(0, '/content/repo/{part}')
+SEED = 42
+print('outputs ->', OUT)
+"""
+
+PULL = code("""
+# re-run after pushing code changes: pulls the latest commit and reloads modules
+import importlib, subprocess
+print(subprocess.run(['git', '-C', '/content/repo', 'pull'], capture_output=True, text=True).stdout)
+for m in list(sys.modules):
+    if m in MODULES: importlib.reload(sys.modules[m])
+""")
+
+
