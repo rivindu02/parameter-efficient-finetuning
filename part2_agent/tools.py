@@ -158,3 +158,18 @@ def parse_date(s):
     return None
 
 
+def days_between(start_date, end_date):
+    a, b = parse_date(start_date), parse_date(end_date)
+    if a is None or b is None:
+        return {"error": "dates must be in YYYY-MM-DD format"}
+    return {"start_date": a.isoformat(), "end_date": b.isoformat(), "days": (b - a).days}
+
+
+TOOLS = {
+    "calculator": calculator,
+    "convert_units": convert_units,
+    "get_weather": get_weather,
+    "get_stock_price": get_stock_price,
+    "days_between": days_between,
+}
+
