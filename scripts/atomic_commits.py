@@ -68,3 +68,47 @@ def commit(msg, dry):
     print("  " + msg)
 
 
+# ---------------------------------------------------------------------------
+# New Python file: one commit per top-level definition
+# ---------------------------------------------------------------------------
+def py_chunks(path, text):
+    """Return [(end_line_exclusive, message)] cumulative cut points."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    lines = text.splitlines(keepends=True)
+    name = os.path.basename(path)
+    cuts = []  # (start_line_index, label)
+    for node in tree.body:
+        start = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])]) - 1
+        # pull preceding comment banners into this chunk
+        while start > 0 and lines[start - 1].lstrip().startswith("#"):
+            start -= 1
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            cuts.append((start, f"Add {node.name}() to {name}"))
+        elif isinstance(node, ast.ClassDef):
+            cuts.append((start, f"Add {node.name} class to {name}"))
+        elif isinstance(node, ast.If) and "__name__" in ast.unparse(node.test):
+            cuts.append((start, f"Add command-line entry point to {name}"))
+        elif isinstance(node, ast.Assign) and cuts and cuts[-1][1].startswith("Add") and len(lines[start:node.end_lineno]) > 8:
+            targets = ", ".join(t.id for t in node.targets if isinstance(t, ast.Name)) or "constants"
+            cuts.append((start, f"Add {targets} to {name}"))
+    if not cuts:
+        return []
+    chunks = []
+    if cuts[0][0] > 0:
+        chunks.append((cuts[0][0], f"Add {name} skeleton (docstring, imports, constants)"))
+    for i, (start, label) in enumerate(cuts):
+        end = cuts[i + 1][0] if i + 1 < len(cuts) else len(lines)
+        if end > start:
+            chunks.append((end, label))
+    # merge chunks that end at the same line
+    out = []
+    for end, label in chunks:
+        if out and out[-1][0] == end:
+            continue
+        out.append((end, label))
+    return [(end, label) for end, label in out]
+
+
