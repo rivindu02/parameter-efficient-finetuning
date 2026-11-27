@@ -349,3 +349,32 @@ def anls(pred, answers, tau=0.5):
     return best
 
 
+@torch.no_grad()
+def evaluate_anls(cfg, model, proc, name):
+    device = next(model.parameters()).device
+    data = load_split(cfg, cfg.eval_split)[:cfg.n_eval]
+    model.eval()
+    proc.tokenizer.padding_side = "left"
+    preds = []
+    for i in range(0, len(data), cfg.eval_batch):
+        chunk = data[i:i + cfg.eval_batch]
+        texts = [proc.apply_chat_template(_messages(e["question"]), add_generation_prompt=True) for e in chunk]
+        enc = proc(text=texts, images=[[_load_image(e["image"])] for e in chunk],
+                   return_tensors="pt", padding=True).to(device)
+        with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=device.type == "cuda"):
+            out = model.generate(**enc, max_new_tokens=cfg.max_new_tokens, do_sample=False)
+        dec = proc.batch_decode(out[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
+        preds += [d.strip() for d in dec]
+    scores = [anls(p, e["answers"]) for p, e in zip(preds, data)]
+    exact = [float(any(" ".join(p.lower().split()) == " ".join(a.lower().split()) for a in e["answers"]))
+             for p, e in zip(preds, data)]
+    res = {"name": name, "n": len(data), "anls": 100 * sum(scores) / len(scores),
+           "exact_match": 100 * sum(exact) / len(exact),
+           "samples": [{"q": e["question"], "pred": p, "answers": e["answers"][:3]} for p, e in zip(preds[:30], data)]}
+    os.makedirs(cfg.out_dir, exist_ok=True)
+    with open(os.path.join(cfg.out_dir, f"eval_{name}.json"), "w") as f:
+        json.dump(res, f, indent=1)
+    print(f"[{name}] ANLS {res['anls']:.2f}  EM {res['exact_match']:.2f}  (n={len(data)})")
+    return res
+
+
