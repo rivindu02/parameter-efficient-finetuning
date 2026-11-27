@@ -179,3 +179,9 @@ def random_date(rng):
     return d
 
 
+def spoken_date(d, style):
+    if style == "iso":
+        return d.isoformat()
+    return f"{MONTHS[d.month - 1]} {d.day}, {d.year}"  # test uses written dates
+
+
