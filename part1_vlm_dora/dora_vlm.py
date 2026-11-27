@@ -132,3 +132,11 @@ def load_model_and_processor(cfg):
     return model, proc
 
 
+def target_regex(targets):
+    vis = r".*vision_model.*\.(q_proj|k_proj|v_proj|out_proj)$"
+    txt = r".*text_model.*\.(q_proj|k_proj|v_proj|o_proj)$"
+    con = r".*connector\.modality_projection\.proj$"
+    parts = {"all": [vis, con, txt], "vision": [vis], "text": [txt]}[targets]
+    return "|".join(f"(?:{p})" for p in parts)
+
+
