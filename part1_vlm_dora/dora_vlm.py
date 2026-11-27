@@ -110,3 +110,10 @@ def _load_image(path):
     return Image.open(path).convert("RGB")
 
 
+def _messages(question, answer=None):
+    msgs = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": question + PROMPT_SUFFIX}]}]
+    if answer is not None:
+        msgs.append({"role": "assistant", "content": [{"type": "text", "text": answer}]})
+    return msgs
+
+
