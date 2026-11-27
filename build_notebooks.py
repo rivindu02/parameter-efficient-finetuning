@@ -326,3 +326,11 @@ for m in ['full', 'lora', 'dora']:
 """),
 ]
 
+if __name__ == "__main__":
+    # standalone notebooks (code embedded with %%writefile) -- submission fallback
+    save(p2, "part2_agent/part2_agent.ipynb")
+    save(p1, "part1_vlm_dora/part1_dora_vlm.ipynb")
+    # git-based runners -- daily workflow
+    save(runner(p2, "part2_agent", ["tools", "make_data", "agent", "evaluate", "train", "run_eval"]),
+         "part2_agent/run_colab.ipynb", keep_outputs=True)
+    save(runner(p1, "part1_vlm_dora", ["dora_vlm"]), "part1_vlm_dora/run_colab.ipynb", keep_outputs=True)
