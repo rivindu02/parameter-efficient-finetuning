@@ -108,3 +108,24 @@ def answer_ok(final, checks):
     return True
 
 
+# ----------------------------------------------------------------------------
+# Per-example scoring + failure category
+# ----------------------------------------------------------------------------
+def score_example(ex, tr):
+    gold = ex["gold_calls"]
+    needs_tool = bool(gold)
+    first = tr["steps"][0] if tr["steps"] else {"attempted": False, "valid": False, "calls": []}
+    any_attempt = any(st["attempted"] for st in tr["steps"])
+    pcalls = pred_calls(tr)
+    r = {"id": ex["id"], "category": ex["category"], "needs_tool": needs_tool}
+    if needs_tool:
+        r["valid"] = format_ok(first)
+        r["call_acc"] = calls_match(pcalls, gold)
+        r["success"] = answer_ok(tr["final"], ex["checks"])
+    else:
+        r["abstain"] = not any_attempt
+        r["success"] = r["abstain"] and answer_ok(tr["final"], ex["checks"])
+    r["failure"] = None if r["success"] else categorize(ex, tr, pcalls)
+    return r
+
+
