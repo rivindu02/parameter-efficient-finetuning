@@ -185,3 +185,8 @@ def summarize(rows):
     }
 
 
+def evaluate(test, traces):
+    rows = [score_example(ex, tr) for ex, tr in zip(test, traces)]
+    return rows, summarize(rows)
+
+
