@@ -153,3 +153,8 @@ def proj_of(name):
     return {"out_proj": "o_proj"}.get(leaf, leaf)
 
 
+def layer_of(name):
+    m = re.search(r"layers\.(\d+)\.", name)
+    return int(m.group(1)) if m else -1
+
+
