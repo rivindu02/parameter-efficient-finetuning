@@ -26,3 +26,4 @@ report/latex/
 report/part1_report.*
 report/part2_writeup.*
 report/md2pdf.py
+scripts/
