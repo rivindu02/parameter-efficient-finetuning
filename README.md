@@ -29,7 +29,6 @@ This repo has two small studies of LoRA-style parameter-efficient fine-tuning. B
 **Files** (in `part1_vlm_dora/`):
 - `dora_vlm.py`: data caching, training, ΔM/ΔD tracking, ANLS evaluation and analysis plots.
 - `run_colab.ipynb`: Colab runner that pulls the code from this repo.
-- `part1_dora_vlm.ipynb`: standalone notebook with all code embedded.
 
 ## Part 2: LoRA fine-tuning for tool calling
 
@@ -71,7 +70,7 @@ A failure analysis sorts errors into categories (missed call, wrong format, wron
 | `evaluate.py` | Metrics, failure categories, baseline-vs-LoRA comparison |
 | `train.py` | LoRA training with loss on assistant turns only |
 | `run_eval.py` | Runs the test set and saves traces and metrics |
-| `run_colab.ipynb` / `part2_agent.ipynb` | Git-based Colab runner / standalone notebook |
+| `run_colab.ipynb` | Colab runner that pulls the code from this repo |
 
 ---
 
@@ -94,12 +93,6 @@ The runner clones this repo and writes every result (metrics JSON, agent traces,
 The sync only downloads from Drive. It never changes anything on Drive.
 
 **Local CPU check.** The Part 2 scripts also run on CPU. For example, `python part2_agent/run_eval.py --name base --limit 16` evaluates the base model on 16 test requests.
-
-**Regenerating the standalone notebooks after editing the modules:**
-
-```bash
-python3 build_notebooks.py
-```
 
 ## Reproducibility
 
