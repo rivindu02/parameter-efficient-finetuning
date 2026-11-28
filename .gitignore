@@ -20,3 +20,9 @@ colab_results/
 EN4554_Assignment.pdf
 .idea
 .vscode
+
+# report drafts and LaTeX sources (kept locally only)
+report/latex/
+report/part1_report.*
+report/part2_writeup.*
+report/md2pdf.py
