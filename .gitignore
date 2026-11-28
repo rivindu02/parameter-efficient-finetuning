@@ -29,3 +29,4 @@ report/md2pdf.py
 scripts/
 part1_vlm_dora/part1_dora_vlm.ipynb
 part2_agent/part2_agent.ipynb
+build_notebooks.py
